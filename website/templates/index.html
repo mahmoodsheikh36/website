@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8"/>
+    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/gif" sizes="16x16">
+    <title>mahmood</title>
+  </head>
+  <body>
+    <div class="main_container">
+      <p class="main_text">Mahmood Sheikh</p>
+      <button class="main_button" id="about_button">about me</button>
+      <button class="main_button" id="blogs_button">my blogs</button>
+      <button class="main_button" id="contact_button">contact me</button>
+      <button class="main_button" id="data_button">my data</button>
+    </div>
+    <script src="{{ url_for('static', filename='main.js') }}"></script>
+    <script src="{{ url_for('static', filename='index.js') }}"></script>
+  </body>
+</html>
