@@ -56,6 +56,7 @@ def create_app(test_config=None):
 
         values = (ip, remote_port, referrer, request_date, data, form, url, access_route, headers)
         db.get_db().execute(sql, values)
+        db.get_db().commit()
 
         print('request from: {}:{}'.format(request.remote_addr, remote_port))
 
