@@ -47,7 +47,6 @@ def create_app(test_config=None):
         referrer = request.referrer
         url = request.url
         request_date = datetime.datetime.now().strftime(DATETIME_FORMAT)
-        remote_port = request.environ.get('REMOTE_PORT')
         user_id = None
         if g.user:
             user_id = g.user['id']
@@ -55,16 +54,16 @@ def create_app(test_config=None):
         sql = \
         """
         INSERT INTO request
-        (ip, port, referrer, request_date, request_data, form,
+        (ip, referrer, request_date, request_data, form,
         url, access_route, headers, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
 
-        values = (ip, remote_port, referrer, request_date, data, form, url, access_route, headers, user_id)
+        values = (ip, referrer, request_date, data, form, url, access_route, headers, user_id)
         db.get_db().execute(sql, values)
         db.get_db().commit()
 
-        print('request from: {}:{}'.format(request.remote_addr, remote_port))
+        print('request from: {}:{}'.format(request.remote_addr, datetime.datetime.now()))
 
     db.init_app(app)
 

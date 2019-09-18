@@ -1,7 +1,6 @@
 CREATE TABLE IF NOT EXISTS request (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ip TEXT NOT NULL,
-  port INTEGER NOT NULL,
   referrer TEXT,
   request_date TEXT NOT NULL,
   request_data,
@@ -18,6 +17,7 @@ CREATE TABLE IF NOT EXISTS user (
   username TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
   email TEXT NOT NULL,
+  register_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   is_admin INTEGER
 );
 

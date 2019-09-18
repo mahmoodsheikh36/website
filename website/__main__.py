@@ -1,1 +1,2 @@
-print('this file should run the server')
+from . import create_app
+application = create_app()
