@@ -1,21 +1,16 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-    <meta charset="UTF-8"/>
-    <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.png') }}" type="image/gif" sizes="16x16">
-    <title>mahmood</title>
-  </head>
-  <body>
-    <div class="main_container">
-      <p class="main_text">Mahmood Sheikh</p>
-      <button class="main_button" id="about_button">about me</button>
-      <button class="main_button" id="blogs_button">my blogs</button>
-      <button class="main_button" id="contact_button">contact me</button>
-      <button class="main_button" id="data_button">my data</button>
-    </div>
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
-    <script src="{{ url_for('static', filename='index.js') }}"></script>
-  </body>
-</html>
+{% extends 'base.html' %}
+{% block head %}
+  <title>Mahmood</title>
+  <link rel="stylesheet" href="css/index.css">
+{% endblock %}
+
+{% block content %}
+<div class="main_container">
+  <a href="blog/">my blog</a>
+  <a href="spotify.html">my music data</a>
+  <a href="spotify.html">about me</a>
+  <a href="https://www.youtube.com/channel/UCcPCQWXX3tAVjsza5EhypXw" target="_blank">youtube</a>
+  <a href="https://github.com/mahmoodsheikh36" target="_blank">github</a>
+  <a href="why_ugly" >why is my website ugly?</a>
+</div>
+{% endblock %}

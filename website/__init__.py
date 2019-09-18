@@ -1,10 +1,11 @@
 import os
 
-from flask import Flask, request
+from flask import Flask, request, g, render_template
 import json
 import datetime
 
 from . import db
+from . import auth
 
 DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S:%f"
 
@@ -36,6 +37,8 @@ def create_app(test_config=None):
 
     @app.before_request
     def log_request():
+        auth.load_user_if_logged_in()
+
         ip = request.remote_addr
         headers = json.dumps({k:v for k, v in request.headers.items()}, indent=2)
         data = request.data.decode('UTF-8')
@@ -45,16 +48,19 @@ def create_app(test_config=None):
         url = request.url
         request_date = datetime.datetime.now().strftime(DATETIME_FORMAT)
         remote_port = request.environ.get('REMOTE_PORT')
+        user_id = None
+        if g.user:
+            user_id = g.user['id']
         
         sql = \
         """
         INSERT INTO request
         (ip, port, referrer, request_date, request_data, form,
-        url, access_route, headers)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+        url, access_route, headers, user_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
 
-        values = (ip, remote_port, referrer, request_date, data, form, url, access_route, headers)
+        values = (ip, remote_port, referrer, request_date, data, form, url, access_route, headers, user_id)
         db.get_db().execute(sql, values)
         db.get_db().commit()
 
@@ -64,5 +70,17 @@ def create_app(test_config=None):
 
     from . import home
     app.register_blueprint(home.bp)
+
+    from . import static
+    app.register_blueprint(static.bp)
+
+    app.register_blueprint(auth.bp)
+
+    from . import blog
+    app.register_blueprint(blog.bp)
+
+    @app.route('/why_ugly')
+    def why_ugly():
+        return render_template('why_ugly.html')
 
     return app
