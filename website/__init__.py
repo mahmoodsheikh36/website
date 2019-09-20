@@ -39,7 +39,13 @@ def create_app(test_config=None):
     def log_request():
         auth.load_user_if_logged_in()
 
-        ip = request.remote_addr
+        ip = None
+
+        if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
+            ip = request.environ['REMOTE_ADDR']
+        else:
+            ip = request.environ.get('HTTP_X_FORWARDED_FOR')
+
         headers = json.dumps({k:v for k, v in request.headers.items()}, indent=2)
         data = request.data.decode('UTF-8')
         form = json.dumps(request.form.to_dict(flat=False), indent=2)
