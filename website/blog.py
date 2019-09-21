@@ -61,7 +61,7 @@ def create():
 
 def get_post(id, check_author=True):
     post = get_db().execute(
-        'SELECT p.id, title, body, created, author_id, username'
+        'SELECT p.id, title, body, created, author_id, username, admin_only'
         ' FROM post p JOIN user u ON p.author_id = u.id'
         ' WHERE p.id = ?',
         (id,)
@@ -110,3 +110,14 @@ def delete(id):
     db.execute('DELETE FROM post WHERE id = ?', (id,))
     db.commit()
     return redirect(url_for('blog.index'))
+
+@bp.route('/<int:id>/post')
+def post(id):
+    post = get_post(id, check_author=False)
+
+    is_user_admin = g.user and g.user['is_admin']
+    is_post_admin_only = post['admin_only']
+
+    if is_post_admin_only and not is_user_admin:
+        abort(403)
+    return render_template('blog/post.html', post=post)
