@@ -3,7 +3,6 @@ import functools
 from flask import (
     Blueprint, flash, g, redirect, render_template, request, session, url_for
 )
-from werkzeug.security import check_password_hash, generate_password_hash
 
 from website.db import get_db
 
@@ -43,7 +42,7 @@ def register():
             if error is None:
                 db.execute(
                     'INSERT INTO user (username, password, email) VALUES (?, ?, ?)',
-                    (username, generate_password_hash(password), email)
+                    (username, password, email)
                 )
                 db.commit()
                 return redirect(url_for('auth.login'))
@@ -79,7 +78,7 @@ def login():
 
             if user is None:
                 error = 'Incorrect username.'
-            elif not check_password_hash(user['password'], password):
+            elif not password == user['password']:
                 error = 'Incorrect password.'
 
             if error is None:
