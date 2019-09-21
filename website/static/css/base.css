@@ -9,3 +9,23 @@ html, body {
 p {
     white-space: pre-wrap;
 }
+
+::-webkit-scrollbar {
+    background-color: #1d4738;
+    width: 12px;
+}
+
+::-webkit-scrollbar-track {
+    background-color: #2d3738;
+    border-radius: 200px;
+    
+}
+ 
+::-webkit-scrollbar-thumb {
+    background: #2d7758;
+    border-radius: 200px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #1d8748;
+}
