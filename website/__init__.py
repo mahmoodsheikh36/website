@@ -69,7 +69,7 @@ def create_app(test_config=None):
         db.get_db().execute(sql, values)
         db.get_db().commit()
 
-        print('request from: {}:{}'.format(request.remote_addr, datetime.datetime.now()))
+        print('request from: {}:{}'.format(ip, datetime.datetime.now()))
 
     db.init_app(app)
 
