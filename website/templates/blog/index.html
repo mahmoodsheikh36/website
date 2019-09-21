@@ -18,14 +18,14 @@
      hello
     {% for post in posts %}
       <div class="link">
-        {% if post['admin_only'] %}
         hi
-        {% if not g.user or not g.user['is_admin'] %}
+        {% if post['admin_only'] %}
+          {% if not g.user or not g.user['is_admin'] %}
         hey
             <a class="disabled" href="{{ url_for('blog.post', id=post['id']) }}">{{ post['title'] }}</a>
             {% elif g.user and g.user['is_admin'] %}
             ss
-            <a href="{{ url_for('blog.post', id=post['id']) }}">{{ post['title'] }}</a>
+              <a href="{{ url_for('blog.post', id=post['id']) }}">{{ post['title'] }}</a>
           {% endif %}
           <span class="red"> - admin only</span>
         {% else %}
