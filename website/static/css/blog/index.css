@@ -1,0 +1,9 @@
+div.links_container {
+    display: flex;
+    flex-flow: column nowrap;
+    padding-top: 10px;
+}
+
+div.links_container div.link {
+    padding-top: 3px;
+}
