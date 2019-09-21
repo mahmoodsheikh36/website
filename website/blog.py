@@ -15,6 +15,7 @@ def index():
         ' FROM post p JOIN user u ON p.author_id = u.id'
         ' ORDER BY created DESC'
     ).fetchall()
+    print(posts)
     return render_template('blog/index.html', posts=posts)    
 
 @bp.route('/create', methods=('GET', 'POST'))
@@ -81,12 +82,18 @@ def update(id):
     post = get_post(id)
 
     if request.method == 'POST':
-        title = request.form['title']
-        body = request.form['body']
         error = None
+        title = None
+        body = None
 
-        if not title:
-            error = 'Title is required.'
+        if not 'title' in request.form:
+            error = 'title is required'
+        if not 'body' in request.form:
+            error = 'body is required'
+
+        if not error:
+            title = request.form['title']
+            body = request.form['body']
 
         if error is not None:
             flash(error)
