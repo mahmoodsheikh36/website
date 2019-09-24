@@ -6,21 +6,18 @@ div.main_container {
     height: 100%;
 }
 
-div.container {
+a.container {
     cursor: pointer;
 }
 
-div.container img {
+a.container img {
     max-width: 256px;
     max-height: 256px;
-    transition: transform .4s;
-}
-
-div.container:hover img {
-    transform: scale(1.2);
+    transition: transform .4s ease-in-out;
     outline: none;
+    border: 0;
 }
 
-@keyframes zoom-anim {
-    
+a.container:hover img {
+    transform: scale(1.2) rotate(10deg);
 }
