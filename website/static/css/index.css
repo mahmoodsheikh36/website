@@ -13,4 +13,13 @@ div.container {
 div.container img {
     max-width: 256px;
     max-height: 256px;
+    transition: transform .4s;
+}
+
+div.container:hover img {
+    transform: scale(1.2);
+}
+
+@keyframes zoom-anim {
+    
 }
