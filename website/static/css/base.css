@@ -3,49 +3,13 @@
 }
 
 html, body {
-    background-color: #a3c3a3;
+    height: 100%;
 }
 
-p {
-    white-space: pre-wrap;
-}
-
-.red {
-    color: #b10000;
-}
-
-.blue {
-}
-
-a {
-    color: #951448;
-}
-
-a:hover {
-    color: #351448;
-}
-
-a.disabled {
-    color: grey;
-    cursor: not-allowed;
-}
-
-::-webkit-scrollbar {
-    background-color: #1d4738;
-    width: 12px;
-}
-
-::-webkit-scrollbar-track {
-    background-color: #2d3738;
-    border-radius: 200px;
-    
-}
- 
-::-webkit-scrollbar-thumb {
-    background: #2d7758;
-    border-radius: 200px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #1d8748;
+body {
+    padding: 0px;
+    margin: 0px;
+    background-image: url("/static/img/background.jpg");
+    background-position: center;
+    background-repeat: no-repeat;
 }
