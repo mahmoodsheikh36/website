@@ -19,14 +19,6 @@ def index():
 def index_page():
     return index()
 
-@bp.route('greeting', methods=['GET', 'POST'])
-def greeting_page():
-    return 'greetings, friend!'
-
-@bp.route('about', methods=['GET', 'POST'])
-def about():
-    return render_template('about.html')
-
 @bp.route('spotify', methods=['GET', 'POST'])
 def spotify():
     return redirect(SPOTIFY_URL)
@@ -38,3 +30,7 @@ def github():
 @bp.route('youtube', methods=['GET', 'POST'])
 def youtube():
     return redirect(YOUTUBE_URL)
+
+@bp.route('music', methods=['GET'])
+def music():
+    return render_template('music.html')

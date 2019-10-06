@@ -1,0 +1,22 @@
+html {
+    height: auto !important;
+}
+
+.tracks_container {
+    height: 100%;
+    margin: 5px;
+}
+
+.track img {
+    max-width: 50px;
+    max-height: 50px;
+}
+
+.track {
+    background-color: #b9a;
+    margin: 5px;
+    width: 500px;
+    display: flex;
+    flex-flow: row nowrap;
+    justify-content: space-between;
+}

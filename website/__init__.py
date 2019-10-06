@@ -82,10 +82,22 @@ def create_app(test_config=None):
     app.register_blueprint(auth.bp)
 
     from . import blog
+
     app.register_blueprint(blog.bp)
 
     @app.route('/why_ugly')
     def why_ugly():
         return render_template('why_ugly.html')
+
+    @app.after_request
+    def add_header(r):
+        """
+        Add headers to both force latest IE rendering engine or Chrome Frame,
+        and also to cache the rendered page for 10 minutes.
+        """
+        r.headers["Pragma"] = "no-cache"
+        r.headers["Expires"] = "0"
+        r.headers['Cache-Control'] = 'public, max-age=0'
+        return r
 
     return app
