@@ -6,10 +6,10 @@
 {% endblock %}
 
 {% block content %}
-  {% for track in tracks %}
   <div class="tracks_container">
+    {% for track in tracks %}
     <div class="track">
-      <img alt="image" src="{{ track['image_url'] }}"/>
+      <img alt="image" src="{{ track['image_url'] }}" style="width:50px;height:50px;"/>
       <div class="info_container">
         <div class="info">
           <a>{{ track['name'] }}</a>
