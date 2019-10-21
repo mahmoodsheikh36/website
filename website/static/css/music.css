@@ -3,8 +3,10 @@ html {
 }
 
 .tracks_container {
-    height: 100%;
-    margin: 5px;
+    margin: 1px;
+    display: flex;
+    flex-flow: column nowrap;
+    align-items: center;
 }
 
 .track img {
@@ -14,9 +16,29 @@ html {
 
 .track {
     background-color: #b9a;
-    margin: 5px;
-    width: 500px;
+    margin: 3px;
     display: flex;
     flex-flow: row nowrap;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 10px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+}
+
+div.info_container {
+    display: flex;
+    flex-flow: row nowrap;
+    margin-left: 10px;
     justify-content: space-between;
+    align-items: center;
+}
+
+div.info {
+    display: flex;
+    flex-flow: column nowrap;
+}
+
+a.listen_time {
+    margin-left: 20px;
 }

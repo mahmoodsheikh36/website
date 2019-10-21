@@ -6,13 +6,18 @@
 {% endblock %}
 
 {% block content %}
+  {% for track in tracks %}
   <div class="tracks_container">
     <div class="track">
-      <img alt="image" src="/static/img/spotify.png"/>
-      <a>Naked</a>
-      <a>James Arthur</a>
-      <a>No album</a>
-      <a>15123</a>
+      <img alt="image" src="{{ track['image_url'] }}"/>
+      <div class="info_container">
+        <div class="info">
+          <a>{{ track['name'] }}</a>
+          <a>{{ track['artist'] }}</a>
+        </div>
+        <a class="listen_time">{{ track['listen_time'] }}</a>
+      </div>
     </div>
+    {% endfor %}
   </div>
 {% endblock %}

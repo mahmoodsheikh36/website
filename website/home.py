@@ -6,6 +6,7 @@ from flask import (
 )
 
 from website.config import *
+from website.spotify import get_tracks
 
 from website.db import get_db
 
@@ -33,4 +34,4 @@ def youtube():
 
 @bp.route('music', methods=['GET'])
 def music():
-    return render_template('music.html')
+    return render_template('music.html', tracks=get_tracks())
