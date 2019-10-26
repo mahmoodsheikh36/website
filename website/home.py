@@ -35,3 +35,7 @@ def youtube():
 @bp.route('music', methods=['GET'])
 def music():
     return render_template('music.html', tracks=get_tracks())
+
+@bp.route('music/json', methods=['GET'])
+def music_json():
+    return json.dumps(get_track())
