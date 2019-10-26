@@ -40,4 +40,4 @@ def music():
 
 @bp.route('music/json', methods=['GET'])
 def music_json():
-    return json.dumps(get_track())
+    return json.dumps(get_tracks())
