@@ -8,8 +8,7 @@ from flask import (
 import json
 
 from website.config import *
-from website.spotify import get_tracks
-
+from website.spotify import get_tracks, get_access_token
 from website.db import get_db
 
 bp = Blueprint('home', __name__, url_prefix='/')
@@ -41,3 +40,27 @@ def music():
 @bp.route('music/json', methods=['GET'])
 def music_json():
     return json.dumps(get_tracks())
+
+@bp.route('music/spotify_access_token', methods=['POST'])
+def spotify_access_token():
+    username = None
+    password = None
+    
+    if 'username' in request.form:
+        username = request.form['username']
+    if 'password' in request.form:
+        password = request.form['password']
+
+    error = None
+
+    if not error:
+        db = get_db()
+
+        user = db.execute(
+            'SELECT * FROM user WHERE username = ?', (username,)
+        ).fetchone()
+
+        if user is not None and password == user['password']:
+            return get_access_token()
+
+    return 'fuck off'

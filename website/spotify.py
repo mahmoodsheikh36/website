@@ -1,7 +1,7 @@
 import sqlite3
 from flask import current_app
 import json
-
+from os.path import expanduser
 from website.db import get_spotify_db
 
 def get_tracks():
@@ -33,3 +33,8 @@ def parse_db_track(track):
     parsed_track["image_url"] = album["images"][0]["url"]
 
     return parsed_track
+
+def get_access_token():
+    home = expanduser("~")
+    with open(home + '/mydata/spotify_data/access_values.json') as access_file:
+        return json.loads(access_file.read())['access_token']
