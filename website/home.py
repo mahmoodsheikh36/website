@@ -69,4 +69,4 @@ def spotify_access_token():
             return get_access_token()
         error = 3
 
-    return 'fuck off' + error
+    return 'fuck off' + str(error)
