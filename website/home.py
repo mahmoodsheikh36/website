@@ -50,13 +50,13 @@ def spotify_access_token():
 
     if 'username' in request.form:
         username = request.form['username']
+        if 'password' in request.form:
+            password = request.form['password']
+        else:
+            error = 2
     else:
         error = 1
 
-    if 'password' in request.form:
-        password = request.form['password']
-    else:
-        error = 2
 
     if error == 0:
         db = get_db()
