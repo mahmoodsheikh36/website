@@ -48,6 +48,7 @@ def spotify_access_token():
     
     error = 0
 
+    print(request.form)
     if 'username' in request.form:
         username = request.form['username']
         if 'password' in request.form:
