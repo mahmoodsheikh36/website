@@ -46,14 +46,19 @@ def spotify_access_token():
     username = None
     password = None
     
+    error = 0
+
     if 'username' in request.form:
         username = request.form['username']
+    else:
+        error = 1
+
     if 'password' in request.form:
         password = request.form['password']
+    else:
+        error = 2
 
-    error = None
-
-    if not error:
+    if error == 0:
         db = get_db()
 
         user = db.execute(
@@ -62,5 +67,6 @@ def spotify_access_token():
 
         if user is not None and password == user['password']:
             return get_access_token()
+        error = 3
 
-    return 'fuck off'
+    return 'fuck off' + error
