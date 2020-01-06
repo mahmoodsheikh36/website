@@ -26,6 +26,7 @@ def parse_db_track(track):
 
     artists = json.loads(track["artists"])
     album = json.loads(track["album"])
+    parsed_track["id"] = track['id']
     parsed_track["artist"] = artists[0]["name"]
     parsed_track["listen_time"] = round(track["playtime"])
     parsed_track["album"] = album["name"]
