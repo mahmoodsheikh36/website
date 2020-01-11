@@ -1,5 +1,4 @@
 import sqlite3
-from flask import current_app
 import json
 from os.path import expanduser
 from website.db import get_spotify_db
@@ -11,7 +10,6 @@ def get_tracks():
     for db_track in db_tracks:
         tracks.append(parse_db_track(db_track))
     sort_tracks(tracks)
-    print(tracks[0]["listen_time"])
     return tracks
 
 def sort_tracks(tracks):

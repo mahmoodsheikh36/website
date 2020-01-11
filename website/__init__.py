@@ -16,6 +16,7 @@ def create_app(test_config=None):
         SECRET_KEY='dev',
         DATABASE=os.path.join(app.instance_path, 'website.sqlite'),
         SPOTIFY_DATABASE=os.path.join(app.instance_path, 'spotify_data.sqlite'),
+        MUSIC_DATABASE=os.path.join(app.instance_path, 'music.sqlite'),
     )
 
     if test_config is None:
@@ -81,6 +82,9 @@ def create_app(test_config=None):
     app.register_blueprint(static.bp)
 
     app.register_blueprint(auth.bp)
+
+    from . import music
+    app.register_blueprint(music.bp)
 
     from . import blog
 

@@ -15,6 +15,15 @@ def get_db():
 
     return g.db
 
+def get_music_db():
+    if 'music_db' not in g:
+        g.music_db = sqlite3.connect(
+            current_app.config['MUSIC_DATABASE'],
+        )
+        g.music_db.row_factory = sqlite3.Row
+
+    return g.music_db
+
 def get_spotify_db():
     if 'spotify_db' not in g:
         g.spotify_db = sqlite3.connect(
@@ -27,11 +36,14 @@ def get_spotify_db():
 def close_db(e=None):
     db = g.pop('db', None)
     spotify_db = g.pop('spotify_db', None)
+    music_db = g.pop('music_db', None)
 
     if db is not None:
         db.close()
     if spotify_db is not None:
         spotify_db.close()
+    if music_db is not None:
+        music_db.close()
 
 def init_db():
     db = get_db()
