@@ -20,9 +20,10 @@ def all_songs():
     songs = []
     for db_song in db_songs:
         song = {}
-        song['name'] = db_song['name']
         song['id'] = db_song['id']
+        song['name'] = db_song['name']
         song['artist'] = db_song['artist']
+        song['album'] = db_song['album']
         songs.append(song)
 
     return json.dumps(songs)
