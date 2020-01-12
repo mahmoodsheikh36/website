@@ -40,4 +40,10 @@ def all_songs():
 def song_audio_file(song_id):
     song = get_song(song_id)
     return send_from_directory(os.path.join(app.instance_path, 'audio'),
-                               os.path.basename(song['file_path']))
+                               os.path.basename(song['audio_file_path']))
+
+@bp.route('/get_song_image_file/<int:song_id>', methods=['GET'])
+def song_image_file(song_id):
+    song = get_song(song_id)
+    return send_from_directory(os.path.join(app.instance_path, 'image'),
+                               os.path.basename(song['image_file_path']))
