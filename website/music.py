@@ -2,7 +2,7 @@ import functools
 from flask import current_app as app
 from flask import send_from_directory
 from flask import (
-    Blueprint
+    Blueprint, Response
 )
 from website.db import get_music_db
 
@@ -35,7 +35,7 @@ def all_songs():
         song['duration'] = db_song['duration']
         songs.append(song)
 
-    return json.dumps(songs)
+    return Response(json.dumps(songs), mimetype='application/json')
 
 @bp.route('/get_song_audio_file/<int:song_id>', methods=['GET'])
 def song_audio_file(song_id):
