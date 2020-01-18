@@ -33,6 +33,7 @@ def all_songs():
         song['artist'] = db_song['artist']
         song['album'] = db_song['album']
         song['duration'] = db_song['duration']
+        song['date_added'] = db_song['date_of_entry']
         songs.append(song)
 
     return Response(json.dumps(songs), mimetype='application/json')
