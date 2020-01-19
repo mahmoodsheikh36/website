@@ -1,14 +1,13 @@
 import functools
 from flask import current_app as app
-from flask import send_from_directory
 from flask import (
-    Blueprint, Response
+    Blueprint, Response, request, send_from_directory
 )
-from website.db import get_music_db
-
 import os
 import sqlite3
 import json
+
+from website.db import get_music_db
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
@@ -16,15 +15,28 @@ def get_songs():
     db = get_music_db()
     db_songs = db.execute('SELECT * FROM songs').fetchall()
     return db_songs
+def get_songs_after_id(id):
+    db = get_music_db()
+    db_songs = db.execute('SELECT * FROM songs WHERE id > ?', (id,)).fetchall()
+    return db_songs
 
 def get_song(id):
     db = get_music_db()
     db_song = db.execute('SELECT * FROM songs WHERE id = ?', (id,)).fetchone()
     return db_song
 
-@bp.route('/all_songs', methods=['GET'])
+@bp.route('/songs', methods=['GET'])
 def all_songs():
-    db_songs = get_songs()
+    after_id = request.args.get('after_id')
+    print("after_id: " + str(after_id))
+    if after_id != None:
+        try:
+            db_songs = get_songs_after_id(int(after_id))
+        except Exception as e:
+            return Response('after_id has to be an integer')
+    else:
+        db_songs = get_songs()
+    print('after_id:' + str(after_id))
     songs = []
     for db_song in db_songs:
         song = {}
