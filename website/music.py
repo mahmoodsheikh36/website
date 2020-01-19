@@ -32,7 +32,7 @@ def all_songs():
     if after_id != None:
         try:
             db_songs = get_songs_after_id(int(after_id))
-        except Exception as e:
+        except ValueError as e:
             return Response('after_id has to be an integer')
     else:
         db_songs = get_songs()
