@@ -3,11 +3,12 @@ from flask import current_app as app
 from flask import (
     Blueprint, Response, request, send_from_directory
 )
+from werkzeug import secure_filename
 import os
 import sqlite3
 import json
 
-from website.db import get_music_db
+from website.db import get_music_db, get_db
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
@@ -61,3 +62,33 @@ def song_image_file(song_id):
     song = get_song(song_id)
     return send_from_directory(os.path.join(app.instance_path, 'image'),
                                os.path.basename(song['image_file_path']))
+
+@bp.route('/add_song', methods=('POST',))
+def add_song():
+    username = None
+    password = None
+    audio_file = None
+
+    if 'username' in request.form:
+        username = request.form['username']
+    if 'password' in request.form:
+        password = request.form['password']
+    if 'audio_file' in request.files:
+        audio_file = request.files['audio_file']
+
+    error = None
+
+    if not username:
+        error = 'huh? wheres the username?'
+    if not password:
+        error = '-_- u need a password'
+    if not audio_file:
+        error = 'provide an audio file goddamit!'
+
+    if error:
+        return error
+
+    db = get_db()
+    audio_file.save(secure_filename(audio_file.filename))
+
+    return 'OK ' + username
