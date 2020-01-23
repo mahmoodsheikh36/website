@@ -4,7 +4,6 @@ import click
 from flask import current_app, g
 from flask.cli import with_appcontext
 
-
 def get_db():
     if 'db' not in g:
         g.db = sqlite3.connect(
@@ -62,3 +61,36 @@ def init_db_command():
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+
+def insert_song(owner_id, name, artist, album, user_static_file_id,
+                duration, lyrics):
+    db = get_db()
+    db.execute(
+        'INSERT INTO songs (owner_id, name, artist, album, lyrics)
+         VALUES (?, ?, ?, ?, ?)',
+        (owner_id, name, artist, album, lyrics,)
+    )
+    song_id = db.lastrowid
+    db.execute(
+        'INSERT INTO song_audio (song_id, user_static_file_id, duration)
+         VALUES (?, ?, ?)',
+        (song_id, user_static_file_id, duration,)
+    )
+    db.commit()
+    return song_id
+
+def insert_user_static_file(owner_id, add_timestamp, file_path,
+                            original_file_name, owner_comment):
+    db.execute(
+        'INSERT INTO user_static_files (owner_id, add_timestamp, file_path,
+                                        original_file_name, owner_comment)
+         VALUES (?, ?, ?, ?, ?)',
+        (owner_id, add_timestamp, file_path, original_file_name, owner_comment,)
+    )
+    db.commit()
+    return db.lastrowid
+
+def ():
+    db.execute(
+        'SELECT '
+    )

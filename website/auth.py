@@ -8,8 +8,15 @@ from website.db import get_db
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
-def get_user_credentials(username, password):
-    return None
+def get_user_by_credentials(username, password):
+    user = db.execute(
+        'SELECT * FROM user WHERE username = ?', (username,)
+    ).fetchone()
+
+    if user is None or if not password == user['password']:
+        return None
+
+    return user
 
 @bp.route('/register', methods=('GET', 'POST'))
 def register():

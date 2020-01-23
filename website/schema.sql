@@ -53,9 +53,10 @@ CREATE TABLE IF NOT EXISTS user_static_files (
 CREATE TABLE IF NOT EXISTS song_audio (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   song_id INTEGER NOT NULL,
-  file_id INTEGER NOT NULL,
+  user_static_file_id INTEGER NOT NULL,
+  duration int,
   FOREIGN KEY (song_id) REFERENCES songs (id),
-  FOREIGN KEY (file_id) REFERENCES user_static_files (id)
+  FOREIGN KEY (user_static_file_id) REFERENCES user_static_files (id)
 );
 
 CREATE TABLE IF NOT EXISTS song_audio_edits (

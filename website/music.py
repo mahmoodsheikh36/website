@@ -8,7 +8,7 @@ import os
 import sqlite3
 import json
 
-from website.db import get_music_db, get_db
+from website.auth import get_user_by_credentials
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
@@ -88,7 +88,11 @@ def add_song():
     if error:
         return error
 
-    db = get_db()
+    user = get_user_by_credentials(username, password)
+    if user is None:
+        return 'wrong credentials'
+
+    file_path = ""
     audio_file.save(secure_filename(audio_file.filename))
 
     return 'OK ' + username
