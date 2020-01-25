@@ -12,6 +12,18 @@ from website.utils import current_time
 def get_static_user_files_dir():
     return os.path.join(current_app.instance_path, 'static_files/')
 
+def get_user_by_id(user_id):
+    user = get_db().execute(
+        'SELECT * FROM user WHERE id = ?', (user_id,)
+    ).fetchone()
+    return user
+
+def get_user_by_username(username):
+    user = get_db().execute(
+        'SELECT * FROM user WHERE username = ?', (username,)
+    ).fetchone()
+    return user
+
 def dict_factory(cursor, row):
     d = {}
     for idx, col in enumerate(cursor.description):
