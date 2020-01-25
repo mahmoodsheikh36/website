@@ -12,7 +12,8 @@ import uuid
 from website.auth import get_user_by_credentials
 from website.db import (
     add_user_static_file, add_song, get_user_songs, get_song_first_audio_file,
-    get_song_last_audio_file_path, get_user_by_username
+    get_song_last_audio_file_path, get_user_by_username, get_song_last_audio_file,
+    get_song_last_audio
 )
 from website.utils import current_time
 
@@ -156,7 +157,9 @@ def all_songs_route():
         song['album'] = db_song['album']
         song['lyrics'] = db_song['lyrics']
         first_song_audio = get_song_first_audio_file(song['id'])
+        last_song_audio = get_song_last_audio(song['id'])
         song['date_added'] = first_song_audio['add_timestamp']
+        song['duration'] = last_song_audio['duration']
         songs.append(song)
 
     return Response(json.dumps(songs), mimetype='application/json')
