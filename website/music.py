@@ -137,7 +137,6 @@ def all_songs_route():
             return 'wrong credentials'
     else:
         user = get_user_by_username('mahmooz')
-        print(user)
 
     after_id = request.args.get('after_id')
     if after_id != None:
