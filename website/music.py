@@ -108,7 +108,9 @@ def add_song_route():
     song_id = add_song(user['id'], song_name, song_artist, song_album,
                        audio_file_id, image_file_id, audio_duration, song_lyrics)
 
-    return 'OK ' + username
+    return 'OK {}, added song \'{}\' by \'{}\''.format(user['username'],
+                                                       song_name,
+                                                       song_artist)
 
 @bp.route('/songs', methods=['POST'])
 def all_songs_route():
