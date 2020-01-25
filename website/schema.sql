@@ -34,20 +34,37 @@ CREATE TABLE IF NOT EXISTS post (
 
 CREATE TABLE IF NOT EXISTS songs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  owner_id INTEGER,
+  owner_id INTEGER NOT NULL,
   name TEXT NOT NULL,
   artist TEXT NOT NULL,
   album TEXT NOT NULL,
-  lyrics TEXT
+  lyrics TEXT,
+  FOREIGN KEY (owner_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS user_static_files (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   owner_id INTEGER NOT NULL,
   add_timestamp int,
-  file_path TEXT NOT NULL,
+  file_name TEXT NOT NULL,
   original_file_name TEXT,
   owner_comment TEXT
+);
+
+CREATE TABLE IF NOT EXISTS song_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  song_id INTEGER NOT NULL,
+  user_static_file_id INTEGER NOT NULL,
+  FOREIGN KEY (song_id) REFERENCES songs (id),
+  FOREIGN KEY (user_static_file_id) REFERENCES user_static_files (id)
+);
+
+CREATE TABLE IF NOT EXISTS song_image_edits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  old_song_image_id INTEGER NOT NULL,
+  new_song_image_id INTEGER,
+  FOREIGN KEY (new_song_image_id) REFERENCES song_image (id),
+  FOREIGN KEY (old_song_image_id) REFERENCES song_image (id)
 );
 
 CREATE TABLE IF NOT EXISTS song_audio (
@@ -61,8 +78,8 @@ CREATE TABLE IF NOT EXISTS song_audio (
 
 CREATE TABLE IF NOT EXISTS song_audio_edits (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  old_song_audio_addition_id INTEGER NOT NULL,
-  new_song_audio_addition_id INTEGER,
-  FOREIGN KEY (old_song_audio_addition_id) REFERENCES song_audio_additions (id),
-  FOREIGN KEY (new_song_audio_addition_id) REFERENCES song_audio_additions (id)
+  old_song_audio_id INTEGER NOT NULL,
+  new_song_audio_id INTEGER,
+  FOREIGN KEY (old_song_audio_id) REFERENCES song_audio (id),
+  FOREIGN KEY (new_song_audio_id) REFERENCES song_audio (id)
 );
