@@ -175,6 +175,15 @@ def get_song_first_audio_file(song_id):
 
     return first_audio_file
 
+def get_song_last_audio(song_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    last_song_audio = db_cursor.execute(
+        'SELECT song_audio.* FROM song_audio JOIN user_static_files ON user_static_files.id = song_audio.user_static_file_id AND song_audio.id = ? ORDER BY user_static_files.add_timestamp',
+        (song_id,)
+    ).fetchone()
+    return last_song_audio
+
 # this contains duplicate code - the following function is almost same as the previous
 def get_song_last_audio_file(song_id):
     all_song_audio = get_all_song_audio(song_id)
