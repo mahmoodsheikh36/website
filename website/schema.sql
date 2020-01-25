@@ -39,7 +39,7 @@ CREATE TABLE IF NOT EXISTS songs (
   artist TEXT NOT NULL,
   album TEXT NOT NULL,
   lyrics TEXT,
-  FOREIGN KEY (owner_id) REFERENCES users (id)
+  FOREIGN KEY (owner_id) REFERENCES user (id)
 );
 
 CREATE TABLE IF NOT EXISTS user_static_files (
