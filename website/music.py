@@ -13,7 +13,7 @@ from website.auth import get_user_by_credentials
 from website.db import (
     add_user_static_file, add_song, get_user_songs, get_song_first_audio_file,
     get_song_last_audio_file_path, get_user_by_username, get_song_last_audio_file,
-    get_song_last_audio, get_song_last_image_file_path
+    get_song_last_audio, get_song_last_image_file_path, get_user_songs_after_id
 )
 from website.utils import current_time
 
@@ -119,7 +119,7 @@ def all_songs_route():
     after_id = request.args.get('after_id')
     if after_id != None:
         try:
-            db_songs = get_songs_after_id(int(after_id))
+            db_songs = get_user_songs_after_id(int(after_id))
         except ValueError as e:
             return Response('after_id has to be an integer')
     else:

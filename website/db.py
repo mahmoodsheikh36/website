@@ -147,6 +147,15 @@ def get_user_songs(owner_id):
     ).fetchall()
     return songs
 
+def get_user_songs_after_id(owner_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    songs = db_cursor.execute(
+        'SELECT * FROM songs WHERE id > ?',
+        (owner_id,)
+    ).fetchall()
+    return songs
+
 # returns an array each containing a song_audio dictionary
 def get_all_song_audio(song_id):
     db = get_db()
