@@ -19,28 +19,6 @@ from website.utils import current_time
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
-def get_songs_after_id(id):
-    db = get_music_db()
-    db_songs = db.execute('SELECT * FROM songs WHERE id > ?', (id,)).fetchall()
-    return db_songs
-
-def get_song(id):
-    db = get_music_db()
-    db_song = db.execute('SELECT * FROM songs WHERE id = ?', (id,)).fetchone()
-    return db_song
-
-@bp.route('/get_song_audio_file/<int:song_id>', methods=['GET'])
-def song_audio_file(song_id):
-    song = get_song(song_id)
-    return send_from_directory(os.path.join(app.instance_path, 'audio'),
-                               os.path.basename(song['audio_file_path']))
-
-@bp.route('/get_song_image_file/<int:song_id>', methods=['GET'])
-def song_image_file(song_id):
-    song = get_song(song_id)
-    return send_from_directory(os.path.join(app.instance_path, 'image'),
-                               os.path.basename(song['image_file_path']))
-
 @bp.route('/add_song', methods=('POST',))
 def add_song_route():
     username = None
