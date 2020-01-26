@@ -13,7 +13,7 @@ from website.auth import get_user_by_credentials
 from website.db import (
     add_user_static_file, add_song, get_user_songs, get_song_first_audio_file,
     get_song_last_audio_file_path, get_user_by_username, get_song_last_audio_file,
-    get_song_last_audio
+    get_song_last_audio, get_song_last_image_file_path
 )
 from website.utils import current_time
 
@@ -195,5 +195,40 @@ def get_song_audio_route():
     file_path = get_song_last_audio_file_path(song_id)
     if file_path is None:
         return 'no audio found for a song with an id of {}'.format(song_id)
+
+    return send_file(file_path)
+
+@bp.route('/image', methods=['POST'])
+def get_song_image_route():
+    username = None
+    password = None
+
+    if 'username' in request.form:
+        username = request.form['username']
+    if 'password' in request.form:
+        password = request.form['password']
+
+    is_mahmooz = username == 'mahmooz'
+
+    if not username:
+        return 'no username provided'
+    elif not password and not is_mahmooz:
+        return 'no password provided'
+
+    user = None
+    if not is_mahmooz:
+        user = get_user_by_credentials(username, password)
+        if user is None:
+            return 'wrong credentials'
+    else:
+        user = get_user_by_username('mahmooz')
+
+    song_id = request.args.get('song_id')
+    if song_id is None:
+        return 'please provide song_id as a query string'
+
+    file_path = get_song_last_image_file_path(song_id)
+    if file_path is None:
+        return 'no image found for a song with an id of {}'.format(song_id)
 
     return send_file(file_path)

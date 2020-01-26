@@ -209,5 +209,25 @@ def get_song_last_audio_file_path(song_id):
         return None
     return os.path.join(get_static_user_files_dir(), audio_file['file_name'])
 
-def get_user_songs_after_id():
-    return
+def get_song_last_image(song_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    last_song_image = db_cursor.execute(
+        'SELECT song_images.* FROM song_images JOIN user_static_files ON user_static_files.id = song_images.user_static_file_id AND song_images.id = ? ORDER BY user_static_files.add_timestamp',
+        (song_id,)
+    ).fetchone()
+    return last_song_image
+
+def get_song_last_image_file_path(song_id):
+    song_last_image = get_song_last_image(song_id)
+    song_last_image_file = get_user_static_file(song_last_image['user_static_file_id'])
+    return os.path.join(get_static_user_files_dir(), song_last_image_file['file_name'])
+
+def get_user_static_file(static_file_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    user_static_file = db_cursor.execute(
+        'SELECT * FROM user_static_files WHERE id = ?',
+        (static_file_id,)
+    ).fetchone()
+    return user_static_file
