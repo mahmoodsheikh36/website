@@ -113,7 +113,7 @@ def add_song(owner_id, name, artist, album, audio_file_id, image_file_id,
     db_cursor.execute(
         'INSERT INTO song_images (song_id, user_static_file_id)\
          VALUES (?, ?)',
-        (song_id, audio_file_id)
+        (song_id, image_file_id)
     )
     db.commit()
     return song_id
