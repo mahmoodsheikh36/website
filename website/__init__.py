@@ -61,7 +61,7 @@ def create_app(test_config=None):
         
         sql = \
         """
-        INSERT INTO request
+        INSERT INTO requests
         (ip, referrer, request_date, request_data, form,
         url, access_route, headers, user_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
