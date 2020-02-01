@@ -31,24 +31,45 @@ CREATE TABLE IF NOT EXISTS post (
   FOREIGN KEY (author_id) REFERENCES user (id)
 );
 
-
 CREATE TABLE IF NOT EXISTS songs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  owner_id INTEGER NOT NULL,
   name TEXT NOT NULL,
-  artist TEXT NOT NULL,
-  album TEXT NOT NULL,
   lyrics TEXT,
+  time_added int,
+  owner_id INTEGER NOT NULL,
   FOREIGN KEY (owner_id) REFERENCES user (id)
+);
+
+CREATE TABLE IF NOT EXISTS song_artists (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  artist_id INTEGER NOT NULL,
+  song_id INTEGER NOT NULL,
+  FOREIGN KEY (artist_id) REFERENCES artists (id),
+  FOREIGN KEY (song_id) REFERENCES songs (id)
+);
+
+CREATE TABLE IF NOT EXISTS album_songs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  song_id INTEGER NOT NULL,
+  album_id INTEGER NOT NULL,
+  FOREIGN KEY (album_id) REFERENCES albums (id),
+  FOREIGN KEY (song_id) REFERENCES songs (id)
+);
+
+CREATE TABLE IF NOT EXISTS single_songs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  song_id INTEGER NOT NULL,
+  FOREIGN KEY (song_id) REFERENCES songs (id)
 );
 
 CREATE TABLE IF NOT EXISTS user_static_files (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   owner_id INTEGER NOT NULL,
-  add_timestamp int,
+  time_added int,
   file_name TEXT NOT NULL,
   original_file_name TEXT,
-  owner_comment TEXT
+  owner_comment TEXT,
+  FOREIGN KEY (owner_id) REFERENCES user (id)
 );
 
 CREATE TABLE IF NOT EXISTS song_images (
@@ -82,4 +103,28 @@ CREATE TABLE IF NOT EXISTS song_audio_edits (
   new_song_audio_id INTEGER,
   FOREIGN KEY (old_song_audio_id) REFERENCES song_audio (id),
   FOREIGN KEY (new_song_audio_id) REFERENCES song_audio (id)
+);
+
+CREATE TABLE IF NOT EXISTS albums (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  artist_id INTEGER NOT NULL,
+  owner_id INTEGER NOT NULL,
+  time_added int,
+  FOREIGN KEY (artist_id) REFERENCES artists (id),
+  FOREIGN KEY (owner_id) REFERENCES user (id)
+);
+
+CREATE TABLE IF NOT EXISTS album_images (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_static_file_id INTEGER NOT NULL,
+  album_id INTEGER NOT NULL,
+  FOREIGN KEY (user_static_file_id) REFERENCES user_static_files (id),
+  FOREIGN KEY (album_id) REFERENCES albums (id)
+);
+
+CREATE TABLE IF NOT EXISTS artists (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL,
+  time_added int
 );
