@@ -10,7 +10,7 @@ bp = Blueprint('auth', __name__, url_prefix='/auth')
 
 def get_user_by_credentials(username, password):
     user = get_db().execute(
-        'SELECT * FROM user WHERE username = ?', (username,)
+        'SELECT * FROM users WHERE username = ?', (username,)
     ).fetchone()
 
     if user is None or not password == user['password']:
@@ -45,13 +45,13 @@ def register():
             db = get_db()
 
             if db.execute(
-                    'SELECT id FROM user WHERE username = ?', (username,)
+                    'SELECT id FROM users WHERE username = ?', (username,)
             ).fetchone() is not None:
                 error = 'User {} is already registered'.format(username)
 
             if error is None:
                 db.execute(
-                    'INSERT INTO user (username, password, email) VALUES (?, ?, ?)',
+                    'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
                     (username, password, email)
                 )
                 db.commit()
@@ -83,7 +83,7 @@ def login():
             db = get_db()
 
             user = db.execute(
-                'SELECT * FROM user WHERE username = ?', (username,)
+                'SELECT * FROM users WHERE username = ?', (username,)
             ).fetchone()
 
             if user is None:
@@ -107,7 +107,7 @@ def load_user_if_logged_in():
         g.user = None
     else:
         g.user = get_db().execute(
-            'SELECT * FROM user WHERE id = ?', (user_id,)
+            'SELECT * FROM users WHERE id = ?', (user_id,)
         ).fetchone()
 
 def login_required(view):

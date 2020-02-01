@@ -63,7 +63,7 @@ def spotify_access_token():
         db = get_db()
 
         user = db.execute(
-            'SELECT * FROM user WHERE username = ?', (username,)
+            'SELECT * FROM users WHERE username = ?', (username,)
         ).fetchone()
 
         if user is not None and password == user['password']:

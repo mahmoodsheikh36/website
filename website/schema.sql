@@ -1,4 +1,4 @@
-CREATE TABLE IF NOT EXISTS request (
+CREATE TABLE IF NOT EXISTS requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ip TEXT NOT NULL,
   referrer TEXT,
@@ -9,10 +9,10 @@ CREATE TABLE IF NOT EXISTS request (
   access_route,
   headers TEXT NOT NULL,
   user_id INTEGER,
-  FOREIGN KEY (user_id) REFERENCES user (id)
+  FOREIGN KEY (user_id) REFERENCES users (id)
 );
 
-CREATE TABLE IF NOT EXISTS user (
+CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   username TEXT UNIQUE NOT NULL,
   password TEXT NOT NULL,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS post (
   title TEXT NOT NULL,
   body TEXT NOT NULL,
   admin_only INTEGER,
-  FOREIGN KEY (author_id) REFERENCES user (id)
+  FOREIGN KEY (author_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS songs (
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS songs (
   lyrics TEXT,
   time_added int,
   owner_id INTEGER NOT NULL,
-  FOREIGN KEY (owner_id) REFERENCES user (id)
+  FOREIGN KEY (owner_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS song_artists (
@@ -69,7 +69,7 @@ CREATE TABLE IF NOT EXISTS user_static_files (
   file_name TEXT NOT NULL,
   original_file_name TEXT,
   owner_comment TEXT,
-  FOREIGN KEY (owner_id) REFERENCES user (id)
+  FOREIGN KEY (owner_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS song_images (
@@ -112,7 +112,7 @@ CREATE TABLE IF NOT EXISTS albums (
   owner_id INTEGER NOT NULL,
   time_added int,
   FOREIGN KEY (artist_id) REFERENCES artists (id),
-  FOREIGN KEY (owner_id) REFERENCES user (id)
+  FOREIGN KEY (owner_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS album_images (

@@ -14,13 +14,13 @@ def get_static_user_files_dir():
 
 def get_user(user_id):
     user = get_db().execute(
-        'SELECT * FROM user WHERE id = ?', (user_id,)
+        'SELECT * FROM users WHERE id = ?', (user_id,)
     ).fetchone()
     return user
 
 def get_user_by_username(username):
     user = get_db().execute(
-        'SELECT * FROM user WHERE username = ?', (username,)
+        'SELECT * FROM users WHERE username = ?', (username,)
     ).fetchone()
     return user
 
