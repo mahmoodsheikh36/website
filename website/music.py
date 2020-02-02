@@ -15,7 +15,7 @@ from website.utils import current_time
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
-def check_auth(request_form, request_method=None):
+def check_auth(request_form, request_method=None, allow_anonymous=False):
     username = None
     password = None
     error_message = None
@@ -25,7 +25,7 @@ def check_auth(request_form, request_method=None):
     if 'password' in request.form:
         password = request.form['password']
 
-    is_mahmooz = username == 'mahmooz' or request_method == 'GET'
+    is_mahmooz = allow_anonymous and (username == 'mahmooz' or request_method == 'GET')
 
     if not username and not is_mahmooz:
         error_message = 'no username provided'
@@ -36,7 +36,7 @@ def check_auth(request_form, request_method=None):
     if not is_mahmooz:
         user = auth.get_user_by_credentials(username, password)
         if user is None:
-            return 'wrong credentials'
+            error_message = 'wrong credentials'
     else:
         user = db.get_user_by_username('mahmooz')
         if user is None:
@@ -47,7 +47,8 @@ def check_auth(request_form, request_method=None):
 @bp.route('/albums_prettified', methods=('POST', 'GET'))
 def get_albums_prettified_route():
     user, error_message = check_auth(request.form,
-                                     request_method=request.method)
+                                     request_method=request.method,
+                                     allow_anonymous=True)
     if error_message:
         return error_message
     db_albums = db.get_user_albums(user['id'])
@@ -84,7 +85,8 @@ def get_albums_prettified_route():
 @bp.route('/albums', methods=('POST', 'GET'))
 def get_albums_route():
     user, error_message = check_auth(request.form,
-                                     request_method=request.method)
+                                     request_method=request.method,
+                                     allow_anonymous=True)
     if error_message:
         return error_message
     db_albums = db.get_user_albums(user['id'])
@@ -101,7 +103,8 @@ def get_albums_route():
 @bp.route('metadata')
 def metadata_route():
     user, error_message = check_auth(request.form,
-                                     request_method=request.method)
+                                     request_method=request.method,
+                                     allow_anonymous=True)
     if error_message:
         return error_message
     
@@ -134,8 +137,8 @@ def metadata_route():
     db_song_artists = db.get_user_song_artists(user['id'])
     metadata['song_artists'] = db_song_artists
 
-    db_song_albums = db.get_user_album_songs(user['id'])
-    metadata['song_albums'] = db_song_albums
+    db_album_songs = db.get_user_album_songs(user['id'])
+    metadata['album_songs'] = db_album_songs
 
     db_single_songs = db.get_user_single_songs(user['id'])
     metadata['single_songs'] = db_single_songs
@@ -149,19 +152,80 @@ def metadata_route():
     db_song_audio = db.get_user_song_audio(user['id'])
     metadata['song_audio'] = db_song_audio
 
+    db_playlists = db.get_user_playlists(user['id'])
+    playlists = []
+    for db_playlist in db_playlists:
+        playlist = {}
+        playlist['id'] = db_playlist['id']
+        playlist['name'] = db_playlist['name']
+        playlist['time_added'] = db_playlist['time_added']
+        playlists.append(playlist)
+    metadata['playlists'] = playlists
+
+    db_playlist_songs = db.get_user_playlist_songs(user['id'])
+    metadata['playlist_songs'] = db_playlist_songs
+
+    db_playlist_images = db.get_user_playlist_images(user['id'])
+    metadata['playlist_images'] = db_playlist_images
+
     return Response(json.dumps(metadata), mimetype='application/json')
 
+@bp.route('/create_playlist', methods=('POST',))
+def create_playlist_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
 
-@bp.route('/artists', methods=('POST', 'GET'))
-def get_artists():
-    user, error_message = check_auth(request.form,
-                                     request_method=request.method)
-    if error_message:
-        return error_message
-    
-    db_artists = db.get_user_artists(user['id'])
-    albuma
-    return
+    if error:
+        return error
+
+    playlist_name = request.args.get('name')
+    if playlist_name is None:
+        return 'please provide the playlists name'
+
+    image_file = None
+    original_image_file_name = None
+    image_comment = None
+    if 'image' in request.files:
+        image_file = request.files['image']
+    else:
+        return 'please provide an image for the playlist'
+    if 'image_file_name' in request.form:
+        original_image_file_name = request.form['image_file_name']
+    if 'image_comment' in request.form:
+        image_comment = request.form['image_comment']
+
+    print(original_image_file_name)
+
+    image_file_id = db.add_user_static_file(
+            user['id'],
+            image_file,
+            image_comment,
+            original_image_file_name)
+    playlist_id = db.add_playlist(user['id'], playlist_name)
+    db.add_playlist_image(playlist_id, image_file_id)
+
+    return 'OK, added playlist {}'.format(original_image_file_name)
+
+@bp.route('/add_song_to_playlist', methods=('POST',))
+def add_song_to_playlist_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+
+    if error:
+        return error
+
+    playlist_id = request.args.get('playlist_id')
+    if playlist_id is None:
+        return 'please provide the playlists id'
+    song_id = request.args.get('song_id')
+    if song_id is None:
+        return 'please provide the songs id that u want add to the playlist'
+
+    db.add_playlist_song(song_id, playlist_id)
+
+    return 'OK'
 
 @bp.route('/singles', methods=('POST',))
 def singles_route():
@@ -399,6 +463,7 @@ def add_album_song():
         db.add_album_image(album_id, image_file_id)
         db.add_song_image(song_id, image_file_id)
     else:
+        db.add_song_image(song_id, album_image_file['user_static_file_id'])
         image_file_msg = 'rejected image, already got one for this album\n'
 
     db.add_song_audio(song_id, audio_file_id, audio_duration)

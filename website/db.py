@@ -9,7 +9,7 @@ from werkzeug import secure_filename
 from website.utils import random_str
 from website.utils import current_time
 
-def get_static_user_files_dir():
+def get_user_static_files_dir():
     return os.path.join(current_app.instance_path, 'static_files/')
 
 def get_user(user_id):
@@ -76,9 +76,9 @@ def init_db():
     with current_app.open_resource('schema.sql') as f:
         db.executescript(f.read().decode('utf8'))
 
-    if not os.path.exists(get_static_user_files_dir()):
+    if not os.path.exists(get_user_static_files_dir()):
         try:
-            os.makedirs(get_static_user_files_dir())
+            os.makedirs(get_user_static_files_dir())
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
@@ -109,8 +109,8 @@ def add_single_song(song_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO single_songs (song_id)\
-       VALUES (?)', (song_id,))
+      'INSERT INTO single_songs (song_id, time_added)\
+       VALUES (?, ?)', (song_id, current_time()))
     db.commit()
     return db_cursor.lastrowid
 
@@ -118,8 +118,8 @@ def add_album_song(song_id, album_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO album_songs (song_id, album_id)\
-       VALUES (?, ?)', (song_id, album_id)
+      'INSERT INTO album_songs (song_id, album_id, time_added)\
+       VALUES (?, ?, ?)', (song_id, album_id, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
@@ -128,8 +128,8 @@ def add_song_audio(song_id, user_static_file_id, duration):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO song_audio (song_id, user_static_file_id, duration)\
-       VALUES (?, ?, ?)', (song_id, user_static_file_id, duration)
+      'INSERT INTO song_audio (song_id, user_static_file_id, duration, time_added)\
+       VALUES (?, ?, ?, ?)', (song_id, user_static_file_id, duration, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
@@ -138,8 +138,8 @@ def add_song_image(song_id, image_static_file_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO song_images (song_id, user_static_file_id)\
-       VALUES (?, ?)', (song_id, image_static_file_id)
+      'INSERT INTO song_images (song_id, user_static_file_id, time_added)\
+       VALUES (?, ?, ?)', (song_id, image_static_file_id, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
@@ -148,8 +148,8 @@ def add_album_image(album_id, image_static_file_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO album_images (album_id, user_static_file_id)\
-       VALUES (?, ?)', (album_id, image_static_file_id)
+      'INSERT INTO album_images (album_id, user_static_file_id, time_added)\
+       VALUES (?, ?, ?)', (album_id, image_static_file_id, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
@@ -159,20 +159,20 @@ def add_single(owner_id, name, artist, album, audio_file_id, image_file_id,
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-        'INSERT INTO songs (owner_id, name, artist, album, lyrics)\
-         VALUES (?, ?, ?, ?, ?)',
-        (owner_id, name, artist, album, lyrics,)
+        'INSERT INTO songs (owner_id, name, artist, album, lyrics, time_added)\
+         VALUES (?, ?, ?, ?, ?, ?)',
+        (owner_id, name, artist, album, lyrics, current_time())
     )
     song_id = db_cursor.lastrowid
     db_cursor.execute(
-        'INSERT INTO song_audio (song_id, user_static_file_id, duration)\
-         VALUES (?, ?, ?)',
-        (song_id, audio_file_id, duration,)
+        'INSERT INTO song_audio (song_id, user_static_file_id, duration, time_added)\
+         VALUES (?, ?, ?, ?)',
+        (song_id, audio_file_id, duration, current_time())
     )
     db_cursor.execute(
-        'INSERT INTO song_images (song_id, user_static_file_id)\
-         VALUES (?, ?)',
-        (song_id, image_file_id)
+        'INSERT INTO song_images (song_id, user_static_file_id, time_added)\
+         VALUES (?, ?, ?)',
+        (song_id, image_file_id, current_time())
     )
     db.commit()
     return song_id
@@ -181,7 +181,7 @@ def add_user_static_file(owner_id, flask_file, owner_comment, original_file_name
     if original_file_name is None:
         original_file_name = flask_file.name
     on_disk_file_name = random_str()
-    flask_file.save(os.path.join(get_static_user_files_dir(), on_disk_file_name))
+    flask_file.save(os.path.join(get_user_static_files_dir(), on_disk_file_name))
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
@@ -277,7 +277,7 @@ def get_song_last_audio_file_path(song_id):
     audio_file = get_song_last_audio_file(song_id)
     if audio_file is None:
         return None
-    return os.path.join(get_static_user_files_dir(), audio_file['file_name'])
+    return os.path.join(get_user_static_files_dir(), audio_file['file_name'])
 
 def get_song_last_image(song_id):
     db = get_db()
@@ -291,7 +291,7 @@ def get_song_last_image(song_id):
 def get_song_last_image_file_path(song_id):
     song_last_image = get_song_last_image(song_id)
     song_last_image_file = get_user_static_file(song_last_image['user_static_file_id'])
-    return os.path.join(get_static_user_files_dir(), song_last_image_file['file_name'])
+    return os.path.join(get_user_static_files_dir(), song_last_image_file['file_name'])
 
 def get_user_static_file(static_file_id):
     db = get_db()
@@ -380,9 +380,9 @@ def add_song_artist(song_id, artist_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-        'INSERT INTO song_artists (song_id, artist_id)\
-         VALUES (?, ?)',
-        (song_id, artist_id)
+        'INSERT INTO song_artists (song_id, artist_id, time_added)\
+         VALUES (?, ?, ?)',
+        (song_id, artist_id, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
@@ -445,5 +445,59 @@ def get_user_album_songs(user_id):
     db = get_db()
     return db.execute(
             'SELECT album_songs.* FROM album_songs JOIN songs ON songs.id = album_songs.song_id AND songs.owner_id = ?',
+            (user_id,)
+    ).fetchall()
+
+def get_user_playlists(user_id):
+    db = get_db()
+    return db.execute(
+            'SELECT * FROM playlists WHERE owner_id = ?',
+            (user_id,)
+    ).fetchall()
+
+def get_user_playlist_songs(user_id):
+    db = get_db()
+    return db.execute(
+            'SELECT playlist_songs.* FROM playlist_songs JOIN playlists ON playlists.id = playlist_songs.playlist_id AND playlists.owner_id = ?',
+            (user_id,)
+    ).fetchall()
+
+def add_playlist(user_id, name):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO playlists (name, time_added, owner_id)\
+         VALUES (?, ?, ?)',
+        (name, current_time(), user_id)
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def add_playlist_song(song_id, playlist_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO playlist_songs (song_id, playlist_id, time_added)\
+         VALUES (?, ?, ?)',
+        (song_id, playlist_id, current_time())
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def add_playlist_image(playlist_id, file_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO playlist_images (playlist_id, user_static_file_id, time_added)\
+         VALUES (?, ?, ?)',
+        (playlist_id, file_id, current_time())
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def get_user_playlist_images(user_id):
+    db = get_db()
+    return db.execute(
+            'SELECT playlist_images.* FROM playlist_images JOIN playlists ON playlists.id = playlist_images.playlist_id AND playlists.owner_id = ?',
             (user_id,)
     ).fetchall()
