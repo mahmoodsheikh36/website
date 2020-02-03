@@ -13,4 +13,3 @@ dist/
 build/
 *.egg-info/
 website/static/WebSite1.rar
-gunicorn.conf

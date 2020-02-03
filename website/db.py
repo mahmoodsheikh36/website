@@ -200,12 +200,18 @@ def add_user_static_file(owner_id, flask_file, owner_comment, original_file_name
     db.commit()
     return db_cursor.lastrowid
 
-def get_user_songs(owner_id):
+def get_user_songs(owner_id, after_time=None):
     db = get_db()
     db_cursor = db.cursor()
-    songs = db_cursor.execute(
-        'SELECT * FROM songs WHERE owner_id = ?', (owner_id,)
-    ).fetchall()
+    if after_time is None:
+        songs = db_cursor.execute(
+            'SELECT * FROM songs WHERE owner_id = ?', (owner_id,)
+        ).fetchall()
+    else:
+        songs = db_cursor.execute(
+            'SELECT * FROM songs WHERE owner_id = ? AND time_added > ?',
+            (owner_id, after_time)
+        ).fetchall()
     return songs
 
 def get_user_songs_after_id(owner_id, after_id):
@@ -345,12 +351,18 @@ def get_album_image_file(album_id):
     ).fetchone()
     return album
 
-def get_user_albums(owner_id):
+def get_user_albums(owner_id, after_time=None):
     db = get_db()
-    albums = db.execute(
-            'SELECT * FROM albums WHERE owner_id = ?',
-            (owner_id,)
-    ).fetchall()
+    if after_time is None:
+        albums = db.execute(
+                'SELECT * FROM albums WHERE owner_id = ?',
+                (owner_id,)
+        ).fetchall()
+    else:
+        albums = db.execute(
+                'SELECT * FROM albums WHERE owner_id = ? AND time_added > ?',
+                (owner_id, after_time)
+        ).fetchall()
     return albums
 
 def get_album_songs(album_id):
@@ -369,12 +381,18 @@ def get_song(id):
     ).fetchone()
     return song
 
-def get_user_single_songs(owner_id):
+def get_user_single_songs(owner_id, after_time=None):
     db = get_db()
-    return db.execute(
-            'SELECT single_songs.* FROM single_songs JOIN songs on songs.id = single_songs.song_id AND songs.owner_id = ?',
-            (owner_id,)
-    ).fetchall()
+    if after_time is None:
+        return db.execute(
+                'SELECT single_songs.* FROM single_songs JOIN songs on songs.id = single_songs.song_id AND songs.owner_id = ?',
+                (owner_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT single_songs.* FROM single_songs JOIN songs on songs.id = single_songs.song_id AND songs.owner_id = ? WHERE single_songs.time_added > ?',
+                (owner_id, after_time)
+        ).fetchall()
 
 def add_song_artist(song_id, artist_id):
     db = get_db()
@@ -403,64 +421,112 @@ def get_artist(artist_id):
     ).fetchone()
     return artist
 
-def get_user_artists(user_id):
+def get_user_artists(user_id, after_time=None):
     db = get_db()
-    artists = db.execute(
-            'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        artists = db.execute(
+                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        artists = db.execute(
+                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ? AND artists.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
     return artists
 
-def get_user_song_artists(user_id):
+def get_user_song_artists(user_id, after_time=None):
     db = get_db()
-    song_artists = db.execute(
-            'SELECT song_artists.* FROM song_artists JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        song_artists = db.execute(
+                'SELECT song_artists.* FROM song_artists JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        song_artists = db.execute(
+                'SELECT song_artists.* FROM song_artists JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ? AND song_artists.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
     return song_artists
 
-def get_user_song_images(user_id):
+def get_user_song_images(user_id, after_time=None):
     db = get_db()
-    song_images = db.execute(
-            'SELECT song_images.* FROM song_images JOIN songs ON songs.id = song_images.song_id AND songs.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        song_images = db.execute(
+                'SELECT song_images.* FROM song_images JOIN songs ON songs.id = song_images.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        song_images = db.execute(
+                'SELECT song_images.* FROM song_images JOIN songs ON songs.id = song_images.song_id AND songs.owner_id = ? AND song_images.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
     return song_images
 
-def get_user_album_images(user_id):
+def get_user_album_images(user_id, after_time=None):
     db = get_db()
-    return db.execute(
-            'SELECT album_images.* FROM album_images JOIN albums ON albums.id = album_images.album_id AND albums.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        return db.execute(
+                'SELECT album_images.* FROM album_images JOIN albums ON albums.id = album_images.album_id AND albums.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT album_images.* FROM album_images JOIN albums ON albums.id = album_images.album_id AND albums.owner_id = ? AND album_images.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
 
-def get_user_song_audio(user_id):
+def get_user_song_audio(user_id, after_time=None):
     db = get_db()
-    return db.execute(
-            'SELECT song_audio.* FROM song_audio JOIN songs ON songs.id = song_audio.song_id AND songs.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        return db.execute(
+                'SELECT song_audio.* FROM song_audio JOIN songs ON songs.id = song_audio.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT song_audio.* FROM song_audio JOIN songs ON songs.id = song_audio.song_id AND songs.owner_id = ? AND song_audio.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
 
-def get_user_album_songs(user_id):
+def get_user_album_songs(user_id, after_time=None):
     db = get_db()
-    return db.execute(
-            'SELECT album_songs.* FROM album_songs JOIN songs ON songs.id = album_songs.song_id AND songs.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        return db.execute(
+                'SELECT album_songs.* FROM album_songs JOIN songs ON songs.id = album_songs.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT album_songs.* FROM album_songs JOIN songs ON songs.id = album_songs.song_id AND songs.owner_id = ? WHERE album_songs.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
 
-def get_user_playlists(user_id):
+def get_user_playlists(user_id, after_time=None):
     db = get_db()
-    return db.execute(
-            'SELECT * FROM playlists WHERE owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        return db.execute(
+                'SELECT * FROM playlists WHERE owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT * FROM playlists WHERE owner_id = ? AND time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
 
-def get_user_playlist_songs(user_id):
+def get_user_playlist_songs(user_id, after_time=None):
     db = get_db()
-    return db.execute(
-            'SELECT playlist_songs.* FROM playlist_songs JOIN playlists ON playlists.id = playlist_songs.playlist_id AND playlists.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        return db.execute(
+                'SELECT playlist_songs.* FROM playlist_songs JOIN playlists ON playlists.id = playlist_songs.playlist_id AND playlists.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT playlist_songs.* FROM playlist_songs JOIN playlists ON playlists.id = playlist_songs.playlist_id AND playlists.owner_id = ? AND playlist_songs.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
 
 def add_playlist(user_id, name):
     db = get_db()
@@ -495,9 +561,15 @@ def add_playlist_image(playlist_id, file_id):
     db.commit()
     return db_cursor.lastrowid
 
-def get_user_playlist_images(user_id):
+def get_user_playlist_images(user_id, after_time=None):
     db = get_db()
-    return db.execute(
-            'SELECT playlist_images.* FROM playlist_images JOIN playlists ON playlists.id = playlist_images.playlist_id AND playlists.owner_id = ?',
-            (user_id,)
-    ).fetchall()
+    if after_time is None:
+        return db.execute(
+                'SELECT playlist_images.* FROM playlist_images JOIN playlists ON playlists.id = playlist_images.playlist_id AND playlists.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT playlist_images.* FROM playlist_images JOIN playlists ON playlists.id = playlist_images.playlist_id AND playlists.owner_id = ? AND playlist_images.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()

@@ -107,9 +107,11 @@ def metadata_route():
                                      allow_anonymous=True)
     if error_message:
         return error_message
+
+    after_time = request.args.get('after_time')
     
     metadata = {}
-    db_albums = db.get_user_albums(user['id'])
+    db_albums = db.get_user_albums(user['id'], after_time)
     albums = []
     for db_album in db_albums:
         album = {}
@@ -120,10 +122,10 @@ def metadata_route():
         albums.append(album)
     metadata['albums'] = albums
 
-    db_artists = db.get_user_artists(user['id'])
+    db_artists = db.get_user_artists(user['id'], after_time)
     metadata['artists'] = db_artists
 
-    db_songs = db.get_user_songs(user['id'])
+    db_songs = db.get_user_songs(user['id'], after_time)
     songs = []
     for db_song in db_songs:
         song = {}
@@ -134,25 +136,25 @@ def metadata_route():
         songs.append(song)
     metadata['songs'] = songs
 
-    db_song_artists = db.get_user_song_artists(user['id'])
+    db_song_artists = db.get_user_song_artists(user['id'], after_time)
     metadata['song_artists'] = db_song_artists
 
-    db_album_songs = db.get_user_album_songs(user['id'])
+    db_album_songs = db.get_user_album_songs(user['id'], after_time)
     metadata['album_songs'] = db_album_songs
 
-    db_single_songs = db.get_user_single_songs(user['id'])
+    db_single_songs = db.get_user_single_songs(user['id'], after_time)
     metadata['single_songs'] = db_single_songs
 
-    db_song_images = db.get_user_song_images(user['id'])
+    db_song_images = db.get_user_song_images(user['id'], after_time)
     metadata['song_images'] = db_song_images
 
-    db_album_images = db.get_user_album_images(user['id'])
+    db_album_images = db.get_user_album_images(user['id'], after_time)
     metadata['album_images'] = db_album_images
 
-    db_song_audio = db.get_user_song_audio(user['id'])
+    db_song_audio = db.get_user_song_audio(user['id'], after_time)
     metadata['song_audio'] = db_song_audio
 
-    db_playlists = db.get_user_playlists(user['id'])
+    db_playlists = db.get_user_playlists(user['id'], after_time)
     playlists = []
     for db_playlist in db_playlists:
         playlist = {}
@@ -162,10 +164,10 @@ def metadata_route():
         playlists.append(playlist)
     metadata['playlists'] = playlists
 
-    db_playlist_songs = db.get_user_playlist_songs(user['id'])
+    db_playlist_songs = db.get_user_playlist_songs(user['id'], after_time)
     metadata['playlist_songs'] = db_playlist_songs
 
-    db_playlist_images = db.get_user_playlist_images(user['id'])
+    db_playlist_images = db.get_user_playlist_images(user['id'], after_time)
     metadata['playlist_images'] = db_playlist_images
 
     return Response(json.dumps(metadata), mimetype='application/json')
@@ -433,7 +435,7 @@ def add_album_song():
             artist_id = artist['id']
         else:
             artist_id = db.add_artist(album_artist_name)
-        db.add_song_artist(song_id, artist_id)
+        song_artists_row_id = db.add_song_artist(song_id, artist_id)
 
     album = db.get_album(user['id'], album_name, album_artist_id)
     album_id = None
@@ -444,7 +446,7 @@ def add_album_song():
     else:
         album_id = album['id']
 
-    db.add_album_song(song_id, album_id)
+    album_songs_row_id = db.add_album_song(song_id, album_id)
     audio_file_id = db.add_user_static_file(
             user['id'],
             audio_file,
@@ -454,6 +456,7 @@ def add_album_song():
     image_file_msg = ''
 
     album_image_file = db.get_album_image_file(album_id)
+    song_image_id = None
     if image_file and not album_image_file:
         image_file_id = db.add_user_static_file(
                 user['id'],
@@ -461,9 +464,9 @@ def add_album_song():
                 image_comment,
                 image_original_file_name)
         db.add_album_image(album_id, image_file_id)
-        db.add_song_image(song_id, image_file_id)
+        song_image_id = db.add_song_image(song_id, image_file_id)
     else:
-        db.add_song_image(song_id, album_image_file['user_static_file_id'])
+        song_image_id = db.add_song_image(song_id, album_image_file['user_static_file_id'])
         image_file_msg = 'rejected image, already got one for this album\n'
 
     db.add_song_audio(song_id, audio_file_id, audio_duration)
