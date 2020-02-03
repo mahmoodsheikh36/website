@@ -353,7 +353,6 @@ def add_album_song():
     image_comment = None
     image_file = None
     artists_str = None
-    album_artist_name = None
     image_original_file_name = None
     audio_original_file_name = None
 
@@ -365,8 +364,8 @@ def add_album_song():
         audio_file = request.files['audio']
     if 'name' in request.form:
         song_name = request.form['name']
-    if 'artist' in request.form:
-        album_artist_name = request.form['artist']
+    if 'album_artist' in request.form:
+        album_artist_name = request.form['album_artist']
     if 'duration' in request.form:
         audio_duration = request.form['duration']
     if 'lyrics' in request.form:
@@ -381,8 +380,6 @@ def add_album_song():
         album_name = request.form['album']
     if 'artist' in request.form:
         artists_str = request.form['artist']
-    if 'album_artist' in request.form:
-        album_artist_name = request.form['album_artist']
     if 'audio_file_name' in request.form:
         audio_original_file_name = request.form['audio_file_name']
     if 'image_file_name' in request.form:
@@ -405,8 +402,6 @@ def add_album_song():
     if not album_name:
         error = 'you did not provide the albums name'
     if not artists_str:
-        error = 'you did not provide the artists'
-    if not album_artist_name:
         error = 'you did not provide the artists'
 
     if error:
