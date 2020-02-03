@@ -44,6 +44,24 @@ def check_auth(request_form, request_method=None, allow_anonymous=False):
 
     return user, error_message
 
+@bp.route('/hide_album', methods=('POST',))
+def hide_album_route():
+    user, error_message = check_auth(request.form,
+                                     request_method=request.method,
+                                     allow_anonymous=False)
+    if error_message:
+        return error_message
+
+    album_id = request.args.get('id')
+    if album_id is None:
+        return 'you did not provide the albums id'
+
+    if db.is_album_hidden(album_id):
+        return 'album is already hidden'
+
+    db.add_hidden_album(album_id)
+    return 'OK'
+
 @bp.route('/albums_prettified', methods=('POST', 'GET'))
 def get_albums_prettified_route():
     user, error_message = check_auth(request.form,
@@ -114,6 +132,8 @@ def metadata_route():
     db_albums = db.get_user_albums(user['id'], after_time)
     albums = []
     for db_album in db_albums:
+        if db.is_album_hidden(db_album['id']):
+            continue
         album = {}
         album['id'] = db_album['id']
         album['name'] = db_album['name']
@@ -169,6 +189,9 @@ def metadata_route():
 
     db_playlist_images = db.get_user_playlist_images(user['id'], after_time)
     metadata['playlist_images'] = db_playlist_images
+
+    db_hidden_albums = db.get_hidden_albums(after_time)
+    metadata['hidden_albums'] = db_hidden_albums
 
     return Response(json.dumps(metadata), mimetype='application/json')
 
@@ -424,17 +447,17 @@ def add_album_song():
         album_artist_id = album_artist['id']
 
     for artist_name in artist_names:
-        artist = db.get_artist_by_name(album_artist_name)
+        artist = db.get_artist_by_name(artist_name)
         artist_id = None
         if artist is not None:
             artist_id = artist['id']
         else:
-            artist_id = db.add_artist(album_artist_name)
+            artist_id = db.add_artist(artist_name)
         song_artists_row_id = db.add_song_artist(song_id, artist_id)
 
     album = db.get_album(user['id'], album_name, album_artist_id)
     album_id = None
-    if album is None:
+    if album is None or db.is_album_hidden(album['id']):
         if not image_file:
             return 'you did not provide an image file'
         album_id = db.add_album(user['id'], album_name, album_artist_id)

@@ -573,3 +573,35 @@ def get_user_playlist_images(user_id, after_time=None):
                 'SELECT playlist_images.* FROM playlist_images JOIN playlists ON playlists.id = playlist_images.playlist_id AND playlists.owner_id = ? AND playlist_images.time_added > ?',
                 (user_id, after_time)
         ).fetchall()
+
+def add_hidden_album(album_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO hidden_albums (album_id, time_added)\
+         VALUES (?, ?)',
+        (album_id, current_time())
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def get_hidden_album(album_id):
+    return get_db().execute(
+            'SELECT * FROM hidden_albums WHERE album_id = ?',
+            (album_id,)
+    ).fetchone()
+
+def is_album_hidden(album_id):
+    hidden_album_row = get_hidden_album(album_id)
+    return hidden_album_row is not None
+
+def get_hidden_albums(after_time=None):
+    if after_time is None:
+        return get_db().execute(
+                'SELECT * FROM hidden_albums',
+        ).fetchall()
+    else:
+        return get_db().execute(
+                'SELECT * FROM hidden_albums WHERE time_added > ?',
+                (after_time,)
+        ).fetchall()

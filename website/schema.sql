@@ -162,3 +162,10 @@ CREATE TABLE IF NOT EXISTS playlist_images (
   FOREIGN KEY (user_static_file_id) REFERENCES user_static_files (id),
   FOREIGN KEY (playlist_id) REFERENCES playlists (id)
 );
+
+CREATE TABLE IF NOT EXISTS hidden_albums (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  album_id INTEGER NOT NULL,
+  time_added int,
+  FOREIGN KEY (album_id) REFERENCES albums (id)
+);
