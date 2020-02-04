@@ -425,13 +425,13 @@ def get_user_artists(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         artists = db.execute(
-                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ?',
-                (user_id,)
+                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ? UNION SELECT artists.* FROM artists JOIN albums ON albums.artist_id = artists.id AND albums.owner_id = ?',
+                (user_id, user_id,)
         ).fetchall()
     else:
         artists = db.execute(
-                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ? AND artists.time_added > ?',
-                (user_id, after_time)
+                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ? UNION SELECT artists.* FROM artists JOIN albums ON albums.artist_id = artists.id AND albums.owner_id = ? AND artists.time_added > ?',
+                (user_id, user_id, after_time)
         ).fetchall()
     return artists
 
