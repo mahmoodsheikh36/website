@@ -269,10 +269,6 @@ def singles_route():
         single_songs.append(single_song)
     return Response(json.dumps(single_songs), mimetype='application/json')
 
-@bp.route('/artists', methods=('POST',))
-def artists_route():
-    return ''
-
 @bp.route('/add_single_song', methods=('POST',))
 def add_single_route():
     username = None
