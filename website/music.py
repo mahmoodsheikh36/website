@@ -248,9 +248,11 @@ def add_song_to_playlist_route():
     if song_id is None:
         return 'please provide the songs id that u want add to the playlist'
 
-    db.add_playlist_song(song_id, playlist_id)
+    if db.get_playlist_song(playlist_id, song_id) is not None:
+        return 'this song already exists in this playlist'
 
-    return 'OK'
+    playlist_song_row_id = db.add_playlist_song(playlist_id, song_id)
+    return str(playlist_song_row_id)
 
 @bp.route('/singles', methods=('POST',))
 def singles_route():
