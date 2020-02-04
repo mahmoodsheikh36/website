@@ -539,7 +539,7 @@ def add_playlist(user_id, name):
     db.commit()
     return db_cursor.lastrowid
 
-def add_playlist_song(song_id, playlist_id):
+def add_playlist_song(playlist_id, song_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
@@ -605,3 +605,9 @@ def get_hidden_albums(after_time=None):
                 'SELECT * FROM hidden_albums WHERE time_added > ?',
                 (after_time,)
         ).fetchall()
+
+def get_playlist_song(playlist_id, song_id):
+    return get_db().execute(
+            'SELECT * FROM playlist_songs WHERE playlist_id = ? AND song_id = ?',
+            (playlist_id, song_id)
+    ).fetchone()
