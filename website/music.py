@@ -138,7 +138,7 @@ def metadata_route():
         album['id'] = db_album['id']
         album['name'] = db_album['name']
         album['artist_id'] = db_album['artist_id']
-        album['timed_added'] = db_album['time_added']
+        album['time_added'] = db_album['time_added']
         albums.append(album)
     metadata['albums'] = albums
 
