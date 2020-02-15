@@ -4,7 +4,7 @@ import click
 import os, errno
 from flask import current_app, g
 from flask.cli import with_appcontext
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 
 from website.utils import random_str
 from website.utils import current_time
@@ -40,35 +40,11 @@ def get_db():
 
     return g.db
 
-def get_music_db():
-    if 'music_db' not in g:
-        g.music_db = sqlite3.connect(
-            current_app.config['MUSIC_DATABASE'],
-        )
-        g.music_db.row_factory = sqlite3.Row
-
-    return g.music_db
-
-def get_spotify_db():
-    if 'spotify_db' not in g:
-        g.spotify_db = sqlite3.connect(
-            current_app.config['SPOTIFY_DATABASE'],
-        )
-        g.spotify_db.row_factory = sqlite3.Row
-
-    return g.spotify_db
-
 def close_db(e=None):
     db = g.pop('db', None)
-    spotify_db = g.pop('spotify_db', None)
-    music_db = g.pop('music_db', None)
 
     if db is not None:
         db.close()
-    if spotify_db is not None:
-        spotify_db.close()
-    if music_db is not None:
-        music_db.close()
 
 def init_db():
     db = get_db()
@@ -83,11 +59,9 @@ def init_db():
             if e.errno != errno.EEXIST:
                 raise
 
-
 @click.command('init-db')
 @with_appcontext
 def init_db_command():
-    """Clear the existing data and create new tables."""
     init_db()
     click.echo('Initialized the database.')
 
@@ -95,13 +69,13 @@ def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
 
-def add_song(owner_id, name, lyrics):
+def add_song(owner_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-        'INSERT INTO songs (owner_id, name, lyrics, time_added)\
-         VALUES (?, ?, ?, ?)',
-        (owner_id, name, lyrics, current_time()))
+        'INSERT INTO songs (owner_id, time_added)\
+         VALUES (?, ?)',
+        (owner_id, current_time()))
     db.commit()
     return db_cursor.lastrowid
 
@@ -114,17 +88,17 @@ def add_single_song(song_id):
     db.commit()
     return db_cursor.lastrowid
 
-def add_album_song(song_id, album_id):
+def add_album_song(song_id, album_id, index_in_album):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO album_songs (song_id, album_id, time_added)\
-       VALUES (?, ?, ?)', (song_id, album_id, current_time())
+      'INSERT INTO album_songs (song_id, album_id, index_in_album, time_added)\
+       VALUES (?, ?, ?, ?)', (song_id, album_id, index_in_album, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
 
-def add_song_audio(song_id, user_static_file_id, duration):
+def add_song_audio(song_id, user_static_file_id, duration, bitrate):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
@@ -154,29 +128,6 @@ def add_album_image(album_id, image_static_file_id):
     db.commit()
     return db_cursor.lastrowid
 
-def add_single(owner_id, name, artist, album, audio_file_id, image_file_id,
-                duration, lyrics):
-    db = get_db()
-    db_cursor = db.cursor()
-    db_cursor.execute(
-        'INSERT INTO songs (owner_id, name, artist, album, lyrics, time_added)\
-         VALUES (?, ?, ?, ?, ?, ?)',
-        (owner_id, name, artist, album, lyrics, current_time())
-    )
-    song_id = db_cursor.lastrowid
-    db_cursor.execute(
-        'INSERT INTO song_audio (song_id, user_static_file_id, duration, time_added)\
-         VALUES (?, ?, ?, ?)',
-        (song_id, audio_file_id, duration, current_time())
-    )
-    db_cursor.execute(
-        'INSERT INTO song_images (song_id, user_static_file_id, time_added)\
-         VALUES (?, ?, ?)',
-        (song_id, image_file_id, current_time())
-    )
-    db.commit()
-    return song_id
-
 def add_user_static_file(owner_id, flask_file, owner_comment, original_file_name=None):
     if original_file_name is None:
         original_file_name = flask_file.name
@@ -205,11 +156,11 @@ def get_user_songs(owner_id, after_time=None):
     db_cursor = db.cursor()
     if after_time is None:
         songs = db_cursor.execute(
-            'SELECT * FROM songs WHERE owner_id = ?', (owner_id,)
+            'SELECT id,time_added FROM songs WHERE owner_id = ?', (owner_id,)
         ).fetchall()
     else:
         songs = db_cursor.execute(
-            'SELECT * FROM songs WHERE owner_id = ? AND time_added > ?',
+            'SELECT id,time_added FROM songs WHERE owner_id = ? AND time_added > ?',
             (owner_id, after_time)
         ).fetchall()
     return songs
@@ -308,12 +259,12 @@ def get_user_static_file(static_file_id):
     ).fetchone()
     return user_static_file
 
-def add_artist(name):
+def add_artist(name, owner_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-       'INSERT INTO artists (name, time_added)\
-        VALUES (?, ?)', (name, current_time())
+       'INSERT INTO artists (name, owner_id, time_added)\
+        VALUES (?, ?, ?)', (name, owner_id, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
@@ -335,35 +286,33 @@ def add_album(owner_id, name, artist_id):
     db.commit()
     return db_cursor.lastrowid
 
-def get_album(owner_id, album_name, artist_id):
-    db = get_db()
-    album = db.execute(
-        'SELECT * FROM albums WHERE owner_id = ? AND name = ? AND artist_id = ?',
-        (owner_id, album_name, artist_id)
-    ).fetchone()
-    return album
-
 def get_album_image_file(album_id):
     db = get_db()
-    album = db.execute(
+    album_image = db.execute(
         'SELECT * FROM album_images WHERE album_id = ?',
         (album_id,)
     ).fetchone()
-    return album
+    return album_image
 
 def get_user_albums(owner_id, after_time=None):
     db = get_db()
     if after_time is None:
         albums = db.execute(
-                'SELECT * FROM albums WHERE owner_id = ?',
+                'SELECT id,name,artist_id,time_added FROM albums WHERE owner_id = ?',
                 (owner_id,)
         ).fetchall()
     else:
         albums = db.execute(
-                'SELECT * FROM albums WHERE owner_id = ? AND time_added > ?',
+                'SELECT id,name,artist_id,time_added FROM albums WHERE owner_id = ? AND time_added > ?',
                 (owner_id, after_time)
         ).fetchall()
     return albums
+
+def get_user_album(owner_id, album_name, artist_id):
+    return get_db().execute(
+            'SELECT id,name,artist_id,time_added FROM albums WHERE owner_id = ? AND name = ? AND artist_id = ?',
+            (owner_id, album_name, artist_id)
+    ).fetchone()
 
 def get_album_songs(album_id):
     db = get_db()
@@ -425,13 +374,13 @@ def get_user_artists(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         artists = db.execute(
-                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ? UNION SELECT artists.* FROM artists JOIN albums ON albums.artist_id = artists.id AND albums.owner_id = ?',
-                (user_id, user_id,)
+                'SELECT id,name,time_added FROM artists WHERE owner_id = ?',
+                (user_id, )
         ).fetchall()
     else:
         artists = db.execute(
-                'SELECT DISTINCT artists.* FROM artists JOIN song_artists ON song_artists.artist_id = artists.id JOIN songs ON songs.id = song_artists.song_id AND songs.owner_id = ? UNION SELECT artists.* FROM artists JOIN albums ON albums.artist_id = artists.id AND albums.owner_id = ? AND artists.time_added > ?',
-                (user_id, user_id, after_time)
+                'SELECT id,name,time_added FROM artists WHERE owner_id = ? AND artists.time_added > ?',
+                (user_id, after_time)
         ).fetchall()
     return artists
 
@@ -506,12 +455,12 @@ def get_user_playlists(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         return db.execute(
-                'SELECT * FROM playlists WHERE owner_id = ?',
+                'SELECT id,name,time_added FROM playlists WHERE owner_id = ?',
                 (user_id,)
         ).fetchall()
     else:
         return db.execute(
-                'SELECT * FROM playlists WHERE owner_id = ? AND time_added > ?',
+                'SELECT id,name,time_added FROM playlists WHERE owner_id = ? AND time_added > ?',
                 (user_id, after_time)
         ).fetchall()
 
@@ -574,40 +523,133 @@ def get_user_playlist_images(user_id, after_time=None):
                 (user_id, after_time)
         ).fetchall()
 
-def add_hidden_album(album_id):
-    db = get_db()
-    db_cursor = db.cursor()
-    db_cursor.execute(
-        'INSERT INTO hidden_albums (album_id, time_added)\
-         VALUES (?, ?)',
-        (album_id, current_time())
-    )
-    db.commit()
-    return db_cursor.lastrowid
-
-def get_hidden_album(album_id):
-    return get_db().execute(
-            'SELECT * FROM hidden_albums WHERE album_id = ?',
-            (album_id,)
-    ).fetchone()
-
-def is_album_hidden(album_id):
-    hidden_album_row = get_hidden_album(album_id)
-    return hidden_album_row is not None
-
-def get_hidden_albums(after_time=None):
-    if after_time is None:
-        return get_db().execute(
-                'SELECT * FROM hidden_albums',
-        ).fetchall()
-    else:
-        return get_db().execute(
-                'SELECT * FROM hidden_albums WHERE time_added > ?',
-                (after_time,)
-        ).fetchall()
-
 def get_playlist_song(playlist_id, song_id):
     return get_db().execute(
             'SELECT * FROM playlist_songs WHERE playlist_id = ? AND song_id = ?',
             (playlist_id, song_id)
+    ).fetchone()
+
+def get_user_playlist_removals(user_id, after_time=None):
+    db = get_db()
+    if after_time is None:
+        return db.execute(
+                'SELECT playlist_removals.* FROM playlist_removals JOIN playlists ON playlists.id = playlist_removals.playlist_id AND playlists.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT playlist_removals.* FROM playlist_removals JOIN playlists ON playlists.id = playlist_removals.playlist_id AND playlists.owner_id = ? AND playlist_removals.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
+
+def get_user_song_lyrics(user_id, after_time=None):
+    db = get_db()
+    if after_time is None:
+        return db.execute(
+                'SELECT song_lyrics.* FROM song_lyrics JOIN songs ON songs.id = song_lyrics.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT song_lyrics.* FROM song_lyrics JOIN songs ON songs.id = song_lyrics.song_id AND songs.owner_id = ? AND song_lyrics.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
+
+def get_user_song_names(user_id, after_time=None):
+    db = get_db()
+    if after_time is None:
+        return db.execute(
+                'SELECT song_names.* FROM song_names JOIN songs ON songs.id = song_names.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT song_names.* FROM song_names JOIN songs ON songs.id = song_names.song_id AND songs.owner_id = ? AND song_names.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
+
+def get_user_liked_songs(user_id, after_time=None):
+    db = get_db()
+    if after_time is None:
+        return db.execute(
+                'SELECT liked_songs.* FROM liked_songs JOIN songs ON songs.id = liked_songs.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT liked_songs.* FROM liked_songs JOIN songs ON songs.id = liked_songs.song_id AND songs.owner_id = ? AND liked_songs.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
+
+def get_user_liked_song_removals(user_id, after_time=None):
+    db = get_db()
+    if after_time is None:
+        return db.execute(
+                'SELECT liked_song_removals.* FROM liked_song_removals JOIN songs ON songs.id = liked_song_removals.song_id AND songs.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT liked_song_removals.* FROM liked_song_removals JOIN songs ON songs.id = liked_song_removals.song_id AND songs.owner_id = ? AND liked_song_removals.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
+
+def get_playlist_song_additions(user_id, after_time=None):
+    db = get_db()
+    if after_time is None:
+        return db.execute(
+                'SELECT playlist_song_additions.* FROM playlist_song_additions JOIN playlists ON playlists.id = playlist_song_additions.playlist_id AND playlists.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT playlist_song_additions.* FROM playlist_song_additions JOIN playlists ON playlists.id = playlist_song_additions.song_id AND playlists.owner_id = ? AND playlist_song_additions.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
+
+def get_playlist_song_removals(user_id, after_time=None):
+    db = get_db()
+    if after_time is None:
+        return db.execute(
+                'SELECT playlist_song_removals.* FROM playlist_song_removals JOIN playlists ON playlists.id = playlist_song_removals.playlist_id AND playlists.owner_id = ?',
+                (user_id,)
+        ).fetchall()
+    else:
+        return db.execute(
+                'SELECT playlist_song_removals.* FROM playlist_song_removals JOIN playlists ON playlists.id = playlist_song_removals.song_id AND playlists.owner_id = ? AND playlist_song_removals.time_added > ?',
+                (user_id, after_time)
+        ).fetchall()
+
+def add_song_name(song_id, song_name):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO song_names (song_id, name, time_added)\
+         VALUES (?, ?, ?)',
+        (song_id, song_name, current_time())
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def get_album_song_by_index(album_id, index_in_album):
+    return get_db().execute(
+            'SELECT * FROM album_songs WHERE album_id = ? AND index_in_album = ?',
+            (album_id, index_in_album)
+    ).fetchone()
+
+def add_liked_song(song_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO liked_songs (song_id, time_added)\
+         VALUES (?, ?)',
+        (song_id, current_time())
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def get_album(album_id):
+    return get_db().execute(
+            'SELECT * FROM albums WHERE id = ?',
+            (album_id,)
     ).fetchone()

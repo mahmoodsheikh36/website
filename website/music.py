@@ -3,7 +3,7 @@ from flask import current_app as app
 from flask import (
     Blueprint, Response, request, send_from_directory, send_file
 )
-from werkzeug import secure_filename
+from werkzeug.utils import secure_filename
 import os
 import sqlite3
 import json
@@ -43,24 +43,6 @@ def check_auth(request_form, request_method=None, allow_anonymous=False):
             error_message = 'mahmooz (admin) user hasn\'t been created yet'
 
     return user, error_message
-
-@bp.route('/hide_album', methods=('POST',))
-def hide_album_route():
-    user, error_message = check_auth(request.form,
-                                     request_method=request.method,
-                                     allow_anonymous=False)
-    if error_message:
-        return error_message
-
-    album_id = request.args.get('id')
-    if album_id is None:
-        return 'you did not provide the albums id'
-
-    if db.is_album_hidden(album_id):
-        return 'album is already hidden'
-
-    db.add_hidden_album(album_id)
-    return 'OK'
 
 @bp.route('/albums_prettified', methods=('POST', 'GET'))
 def get_albums_prettified_route():
@@ -118,7 +100,7 @@ def get_albums_route():
         albums.append(album)
     return Response(json.dumps(albums), mimetype='application/json')
 
-@bp.route('metadata')
+@bp.route('/metadata', methods=('POST', 'GET'))
 def metadata_route():
     user, error_message = check_auth(request.form,
                                      request_method=request.method,
@@ -130,31 +112,13 @@ def metadata_route():
     
     metadata = {}
     db_albums = db.get_user_albums(user['id'], after_time)
-    albums = []
-    for db_album in db_albums:
-        if db.is_album_hidden(db_album['id']):
-            continue
-        album = {}
-        album['id'] = db_album['id']
-        album['name'] = db_album['name']
-        album['artist_id'] = db_album['artist_id']
-        album['time_added'] = db_album['time_added']
-        albums.append(album)
-    metadata['albums'] = albums
+    metadata['albums'] = db_albums
 
     db_artists = db.get_user_artists(user['id'], after_time)
     metadata['artists'] = db_artists
 
     db_songs = db.get_user_songs(user['id'], after_time)
-    songs = []
-    for db_song in db_songs:
-        song = {}
-        song['id'] = db_song['id']
-        song['name'] = db_song['name']
-        song['lyrics'] = db_song['lyrics']
-        song['time_added'] = db_song['time_added']
-        songs.append(song)
-    metadata['songs'] = songs
+    metadata['songs'] = db_songs
 
     db_song_artists = db.get_user_song_artists(user['id'], after_time)
     metadata['song_artists'] = db_song_artists
@@ -175,14 +139,7 @@ def metadata_route():
     metadata['song_audio'] = db_song_audio
 
     db_playlists = db.get_user_playlists(user['id'], after_time)
-    playlists = []
-    for db_playlist in db_playlists:
-        playlist = {}
-        playlist['id'] = db_playlist['id']
-        playlist['name'] = db_playlist['name']
-        playlist['time_added'] = db_playlist['time_added']
-        playlists.append(playlist)
-    metadata['playlists'] = playlists
+    metadata['playlists'] = db_playlists
 
     db_playlist_songs = db.get_user_playlist_songs(user['id'], after_time)
     metadata['playlist_songs'] = db_playlist_songs
@@ -190,23 +147,40 @@ def metadata_route():
     db_playlist_images = db.get_user_playlist_images(user['id'], after_time)
     metadata['playlist_images'] = db_playlist_images
 
-    db_hidden_albums = db.get_hidden_albums(after_time)
-    metadata['hidden_albums'] = db_hidden_albums
+    db_playlist_removals = db.get_user_playlist_removals(user['id'], after_time)
+    metadata['playlist_removals'] = db_playlist_removals
+
+    db_song_lyrics = db.get_user_song_lyrics(user['id'], after_time)
+    metadata['song_lyrics'] = db_song_lyrics
+
+    db_song_names = db.get_user_song_names(user['id'], after_time)
+    metadata['song_names'] = db_song_names
+
+    db_liked_songs = db.get_user_liked_songs(user['id'], after_time)
+    metadata['liked_songs'] = db_liked_songs
+
+    db_liked_song_removals = db.get_user_liked_song_removals(user['id'], after_time)
+    metadata['liked_song_removals'] = db_liked_song_removals
+
+    db_playlist_song_additions = db.get_playlist_song_additions(user['id'], after_time)
+    metadata['playlist_song_additions'] = db_playlist_song_additions
+
+    db_playlist_song_removals = db.get_playlist_song_removals(user['id'], after_time)
+    metadata['playlist_song_removals'] = db_playlist_song_removals
 
     return Response(json.dumps(metadata), mimetype='application/json')
 
-@bp.route('/create_playlist', methods=('POST',))
-def create_playlist_route():
+@bp.route('/add_playlist', methods=('POST',))
+def add_playlist_route():
     user, error = check_auth(request.form,
                              request_method=request.method,
                              allow_anonymous=False)
-
     if error:
         return error
 
     playlist_name = request.args.get('name')
     if playlist_name is None:
-        return 'please provide the playlists name'
+        return {'success': False, 'error': 'playlist name wasnt provided'}
 
     image_file = None
     original_image_file_name = None
@@ -214,45 +188,279 @@ def create_playlist_route():
     if 'image' in request.files:
         image_file = request.files['image']
     else:
-        return 'please provide an image for the playlist'
-    if 'image_file_name' in request.form:
-        original_image_file_name = request.form['image_file_name']
-    if 'image_comment' in request.form:
-        image_comment = request.form['image_comment']
-
-    print(original_image_file_name)
+        return { 'success': False, 'error': 'no image provided' }
 
     image_file_id = db.add_user_static_file(
             user['id'],
             image_file,
-            image_comment,
-            original_image_file_name)
+            None,
+            None)
     playlist_id = db.add_playlist(user['id'], playlist_name)
     db.add_playlist_image(playlist_id, image_file_id)
 
-    return 'OK, added playlist {}'.format(original_image_file_name)
+    return {'success': True, 'data': {'id': playlist_id}}
+
+@bp.route('/add_artist', methods=('POST',))
+def add_artist():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+    if error:
+        return {'success': False, 'error': error}
+
+    artist_name = request.args.get('name')
+    if artist_name is None:
+        return {'success': False, 'error': 'please provide the artist\'s name'}
+
+    artist_id = db.add_artist(artist_name, user['id'])
+    return {'success': True, 'data': {'id': artist_id}}
+
+@bp.route('/add_album', methods=('POST',))
+def add_album_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+    if error:
+        return {'success': False, 'error': error}
+
+    album_name = request.args.get('album_name')
+    artist_id = request.args.get('artist_id')
+    album_image_file = None
+
+    if album_name is None:
+        return {'success': False, 'error': 'no album_name provided'}
+    if artist_id is None:
+        return {'success': False, 'error': 'no artist_id provided'}
+
+    if 'image' not in request.files:
+        return {'success': False, 'error': 'no image provided'}
+    else:
+        album_image_file = request.files['image']
+
+    try:
+        artist_id = int(artist_id)
+    except ValueError as e:
+        return {'success': False, 'error': 'artist_id should be an integer'}
+    artist = db.get_artist(artist_id)
+    if artist is None:
+        return {'success': False, 'error': 'no such artist'}
+
+    album = db.get_user_album(user['id'], album_name, artist_id)
+    if album is not None:
+        return {'success': False, 'error': 'album with this name exists for this artist already'}
+
+    album_id = db.add_album(user['id'], album_name, artist_id)
+    album_image_file_id = db.add_user_static_file(
+            user['id'],
+            album_image_file,
+            None,
+            None)
+    db.add_album_image(album_id, album_image_file_id)
+
+    return {'success': True, 'data': {'album_id': album_id}}
+
+@bp.route('/add_song_to_album', methods=('POST',))
+def add_song_to_album_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+    if error:
+        return {'success': False, 'error': error}
+
+    album_id = request.args.get('album_id')
+    if album_id is None:
+        return {'success': False, 'error': 'no album_id provided'}
+    try:
+        album_id = int(album_id)
+    except ValueError as e:
+        return {'success': False, 'error': 'album_id should be an integer'}
+
+    album = db.get_album(album_id)
+    if album is None:
+        return {'success': False, 'error': 'no album with id: ' + str(album_id)}
+
+    song_audio_file = None
+    if 'audio' not in request.files:
+        return {'success': False, 'error': 'no audio file provided'}
+    song_audio_file = request.files['audio']
+
+    song_name = request.args.get('name')
+    if song_name is None:
+        return {'success': False, 'error': 'no song_name provided'}
+
+    audio_duration = request.args.get('duration')
+    if audio_duration is None:
+        return {'success': False, 'error': 'the audio duration wasnt provided'}
+    try:
+        audio_duration = int(audio_duration)
+    except ValueError as e:
+        return {'success': False, 'error': 'duration should be an integer'}
+
+    audio_bitrate = request.args.get('bitrate')
+    if audio_bitrate is None:
+        return {'success': False, 'error': 'audio bitrate wasn\'t provided'}
+    try:
+        audio_bitrate = int(audio_bitrate)
+    except ValueError as e:
+        return {'success': False, 'error': 'audio bitrate should be an integer'}
+
+    index_in_album = request.args.get('index_in_album')
+    if index_in_album is None:
+        return {'success': False, 'error': 'song index in album wasnt provided'}
+    try:
+        index_in_album = int(index_in_album)
+    except ValueError as e:
+        return {'success': False, 'error': 'index_in_album should be an integer'}
+
+    if db.get_album_song_by_index(album_id, index_in_album) is not None:
+        return {'success': False, 'error': 'a song with this index already exists in this album'}
+
+    artist_ids = []
+    artist_ids_str = request.args.get('artist_ids')
+    if artist_ids_str is None:
+        return {'success': False, 'error': 'artist_ids not provided'}
+
+    for artist_id_str in artist_ids_str.split(','):
+        try:
+            artist_ids.append(int(artist_id_str.strip()))
+        except ValueError as e:
+            return {'success': False, 'error': 'artist_id should be an integer'}
+
+    for artist_id in artist_ids:
+        artist = db.get_artist(artist_id)
+        if artist is None:
+            return {'success': False, 'error': 'no artist with id ' + str(artist_id)}
+
+    song_id = db.add_song(user['id'])
+    song_name_id = db.add_song_name(song_id, song_name)
+    audio_file_id = db.add_user_static_file(
+            user['id'],
+            song_audio_file,
+            None,
+            None)
+    db.add_song_audio(song_id, audio_file_id, audio_duration, audio_bitrate)
+    for artist_id in artist_ids:
+        db.add_song_artist(song_id, artist_id)
+    db.add_album_song(song_id, album_id, index_in_album)
+    db.add_song_image(song_id, db.get_album_image_file(album_id)['user_static_file_id'])
+
+    return {'success': True, 'data': {'id': song_id}}
+
+@bp.route('/add_single_song', methods=('POST',))
+def add_single_song_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+    if error:
+        return {'success': False, 'error': error}
+
+    song_audio_file = None
+    if 'audio' in request.files:
+        song_audio_file = request.files['audio']
+    else:
+        return {'success': False, 'error': 'no audio file provided'}
+
+    song_name = request.args.get('name')
+    if song_name is None:
+        return {'success': False, 'error': 'song\'s name wasnt provided'}
+
+    song_image_file = None
+    if 'image' in request.files:
+        song_image_file = request.files['image']
+    else:
+        return {'success': False, 'error': 'no image file provided'}
+
+    artist_ids = []
+    artist_ids_str = request.args.get('artist_ids')
+    if artist_ids_str is None:
+        return {'success': False, 'error': 'artist_ids not provided'}
+
+    for artist_id_str in artist_ids_str.split(','):
+        try:
+            artist_ids.append(int(artist_id_str.strip()))
+        except ValueError as e:
+            return {'success': False, 'error': 'artist_id should be an integer'}
+
+    for artist_id in artist_ids:
+        artist = db.get_artist(artist_id)
+        if artist is None:
+            return {'success': False, 'error': 'no artist with id ' + str(artist_id)}
+
+    audio_bitrate = request.args.get('bitrate')
+    if audio_bitrate is None:
+        return {'success': False, 'error': 'audio bitrate wasn\'t provided'}
+    try:
+        audio_bitrate = int(audio_bitrate)
+    except ValueError as e:
+        return {'success': False, 'error': 'audio bitrate should be an integer'}
+
+    audio_duration = request.args.get('duration')
+    if audio_duration is None:
+        return {'success': False, 'error': 'the audio duration wasnt provided'}
+    try:
+        audio_duration = int(audio_duration)
+    except ValueError as e:
+        return {'success': False, 'error': 'duration should be an integer'}
+
+    song_id = db.add_song(user['id'])
+    song_name_id = db.add_song_name(song_id, song_name)
+    image_file_id = db.add_user_static_file(
+            user['id'],
+            song_image_file,
+            None,
+            None)
+    audio_file_id = db.add_user_static_file(
+            user['id'],
+            song_audio_file,
+            None,
+            None)
+    db.add_song_audio(song_id, audio_file_id, audio_duration, audio_bitrate)
+    db.add_song_image(song_id, image_file_id)
+    single_song_id = db.add_single_song(song_id)
+    for artist_id in artist_ids:
+        db.add_song_artist(song_id, artist_id)
+
+    return {'success': True, 'data': {'id': song_id}}
+
+@bp.route('/like_song', methods=('POST',))
+def like_song_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+    if error:
+        return {'success': False, 'error': error}
+
+    song_id = request.args.get('id')
+    if song_id is None:
+        return {'success': False, 'error': 'no song_id provided'}
+    try:
+        song_id = int(song_id)
+    except ValueError as e:
+        return {'success': False, 'error': 'song_id should be an integer'}
+
+    liked_songs_row_id = db.add_liked_song(song_id)
+    return {'success': True, 'data': {'liked_songs_row_id': liked_songs_row_id}}
 
 @bp.route('/add_song_to_playlist', methods=('POST',))
 def add_song_to_playlist_route():
     user, error = check_auth(request.form,
                              request_method=request.method,
                              allow_anonymous=False)
-
     if error:
-        return error
+        return {'success': False, 'error': error}
 
     playlist_id = request.args.get('playlist_id')
     if playlist_id is None:
-        return 'please provide the playlists id'
+        return {'success': False, 'error': 'please provide the playlists id'}
     song_id = request.args.get('song_id')
     if song_id is None:
-        return 'please provide the songs id that u want add to the playlist'
+        return {'success': False, 'error': 'please provide the songs id that u want add to the playlist'}
 
     if db.get_playlist_song(playlist_id, song_id) is not None:
-        return 'this song already exists in this playlist'
+        return {'success': False, 'error': 'this song already exists in this playlist'}
 
-    playlist_song_row_id = db.add_playlist_song(playlist_id, song_id)
-    return str(playlist_song_row_id)
+    playlist_songs_row_id = db.add_playlist_song(playlist_id, song_id)
+    return {'success': True, 'data': {'playlist_songs_row_id': playlist_song_row_id}}
 
 @bp.route('/singles', methods=('POST',))
 def singles_route():
@@ -270,333 +478,6 @@ def singles_route():
         single_song['artist_id'] = db_song['name']
         single_songs.append(single_song)
     return Response(json.dumps(single_songs), mimetype='application/json')
-
-@bp.route('/add_single_song', methods=('POST',))
-def add_single_route():
-    username = None
-    password = None
-    audio_file = None
-    song_name = None
-    artists_str = None
-    audio_duration = None
-    song_lyrics = None
-    audio_comment = None
-    image_comment = None
-    image_file = None
-    image_original_file_name = None
-    audio_original_file_name = None
-
-    if 'username' in request.form:
-        username = request.form['username']
-    if 'password' in request.form:
-        password = request.form['password']
-    if 'audio' in request.files:
-        audio_file = request.files['audio']
-    if 'name' in request.form:
-        song_name = request.form['name']
-    if 'artist' in request.form:
-        artists_str = request.form['artist']
-    if 'duration' in request.form:
-        audio_duration = request.form['duration']
-    if 'lyrics' in request.form:
-        song_lyrics = request.form['lyrics']
-    if 'audio_comment' in request.form:
-        comment = request.form['audio_comment']
-    if 'image_comment' in request.form:
-        comment = request.form['image_comment']
-    if 'image' in request.files:
-        image_file = request.files['image']
-    if 'audio_file_name' in request.form:
-        audio_original_file_name = request.form['audio_file_name']
-    if 'image_file_name' in request.form:
-        image_original_file_name = request.form['image_file_name']
-
-    error = None
-
-    if not username:
-        error = 'huh? wheres the username?'
-    if not password:
-        error = '-_- u need a password'
-    if not audio_file:
-        error = 'provide an audio file goddamit!'
-    if not song_name:
-        error = 'you did not provide the songs name'
-    if not artists_str:
-        error = 'you did not provide the songs artist names'
-    if not audio_duration:
-        error = 'you did not provide the songs audio duration'
-    if not image_file:
-        error = 'you did not provide an image file'
-
-    if error:
-        return error
-
-    user = auth.get_user_by_credentials(username, password)
-    if user is None:
-        return 'wrong credentials'
-
-    artist_names = [artist.strip() for artist in artists_str.split('&')]
-
-    song_id = db.add_song(user['id'], song_name, song_lyrics)
-    db.add_single_song(song_id)
-
-    for artist_name in artist_names:
-        artist = db.get_artist_by_name(artist_name)
-        artist_id = None
-        if artist is not None:
-            artist_id = artist['id']
-        else:
-            artist_id = db.add_artist(artist_name)
-        db.add_song_artist(song_id, artist_id)
-
-    audio_file_id = db.add_user_static_file(user['id'], audio_file, audio_comment, audio_original_file_name)
-    image_file_id = db.add_user_static_file(user['id'], image_file, image_comment, image_original_file_name)
-    db.add_song_audio(song_id, audio_file_id, audio_duration)
-    db.add_song_image(song_id, image_file_id)
-
-    return 'OK {}, added single song \'{}\' by \'{}\''.format(
-                user['username'],
-                song_name,
-                artist_names[0]
-            )
-
-@bp.route('/add_album_song', methods=('POST',))
-def add_album_song():
-    username = None
-    password = None
-    audio_file = None
-    song_name = None
-    album_artist_name = None
-    album_name = None
-    audio_duration = None
-    song_lyrics = None
-    audio_comment = None
-    image_comment = None
-    image_file = None
-    artists_str = None
-    image_original_file_name = None
-    audio_original_file_name = None
-
-    if 'username' in request.form:
-        username = request.form['username']
-    if 'password' in request.form:
-        password = request.form['password']
-    if 'audio' in request.files:
-        audio_file = request.files['audio']
-    if 'name' in request.form:
-        song_name = request.form['name']
-    if 'album_artist' in request.form:
-        album_artist_name = request.form['album_artist']
-    if 'duration' in request.form:
-        audio_duration = request.form['duration']
-    if 'lyrics' in request.form:
-        song_lyrics = request.form['lyrics']
-    if 'audio_comment' in request.form:
-        comment = request.form['audio_comment']
-    if 'image_comment' in request.form:
-        comment = request.form['image_comment']
-    if 'image' in request.files:
-        image_file = request.files['image']
-    if 'album' in request.form:
-        album_name = request.form['album']
-    if 'artist' in request.form:
-        artists_str = request.form['artist']
-    if 'audio_file_name' in request.form:
-        audio_original_file_name = request.form['audio_file_name']
-    if 'image_file_name' in request.form:
-        image_original_file_name = request.form['image_file_name']
-
-    error = None
-
-    if not username:
-        error = 'huh? wheres the username?'
-    if not password:
-        error = '-_- u need a password'
-    if not audio_file:
-        error = 'provide an audio file goddamit!'
-    if not song_name:
-        error = 'you did not provide the songs name'
-    if not album_artist_name:
-        error = 'you did not provide the albums artist name'
-    if not audio_duration:
-        error = 'you did not provide the songs audio duration'
-    if not album_name:
-        error = 'you did not provide the albums name'
-    if not artists_str:
-        error = 'you did not provide the artists'
-
-    if error:
-        return error
-
-    user = auth.get_user_by_credentials(username, password)
-    if user is None:
-        return 'wrong credentials'
-
-    artist_names = [artist.strip() for artist in artists_str.split('&')]
-
-    song_id = db.add_song(user['id'], song_name, song_lyrics)
-
-    album_artist = db.get_artist_by_name(album_artist_name)
-    if not album_artist:
-        if not image_file:
-            return 'you did not provide an image file'
-        album_artist_id = db.add_artist(album_artist_name)
-    else:
-        album_artist_id = album_artist['id']
-
-    for artist_name in artist_names:
-        artist = db.get_artist_by_name(artist_name)
-        artist_id = None
-        if artist is not None:
-            artist_id = artist['id']
-        else:
-            artist_id = db.add_artist(artist_name)
-        song_artists_row_id = db.add_song_artist(song_id, artist_id)
-
-    album = db.get_album(user['id'], album_name, album_artist_id)
-    album_id = None
-    if album is None or db.is_album_hidden(album['id']):
-        if not image_file:
-            return 'you did not provide an image file'
-        album_id = db.add_album(user['id'], album_name, album_artist_id)
-    else:
-        album_id = album['id']
-
-    album_songs_row_id = db.add_album_song(song_id, album_id)
-    audio_file_id = db.add_user_static_file(
-            user['id'],
-            audio_file,
-            audio_comment,
-            audio_original_file_name)
-
-    image_file_msg = ''
-
-    album_image_file = db.get_album_image_file(album_id)
-    song_image_id = None
-    if image_file and not album_image_file:
-        image_file_id = db.add_user_static_file(
-                user['id'],
-                image_file,
-                image_comment,
-                image_original_file_name)
-        db.add_album_image(album_id, image_file_id)
-        song_image_id = db.add_song_image(song_id, image_file_id)
-    else:
-        song_image_id = db.add_song_image(song_id, album_image_file['user_static_file_id'])
-        image_file_msg = 'rejected image, already got one for this album\n'
-
-    db.add_song_audio(song_id, audio_file_id, audio_duration)
-
-    return image_file_msg + 'OK {}, added song \'{}\''.format(user['username'], song_name)
-
-@bp.route('/add_album', methods=('POST',))
-def add_album_route():
-    username = None
-    password = None
-    songs_str = None
-    songs = None
-    album_artist = None
-    album_name = None
-    album_image_file = None
-
-    if 'username' in request.form:
-        username = request.form['username']
-    if 'password' in request.form:
-        password = request.form['password']
-    if 'songs' in request.form:
-        songs_str = request.form['songs']
-    if 'artist' in request.form:
-        album_artist = request.form['artist']
-    if 'name' in request.form:
-        album_name = request.form['name']
-    if 'image' in request.files:
-        album_image_file = request.files['image']
-
-    if not username:
-        error = 'huh? wheres the username?'
-    if not password:
-        error = '-_- u need a password'
-    if not songs_str:
-        error = 'you didn\'t provide songs'
-    if not album_artist:
-        error = 'you didn\'t provide the artist name'
-    if not album_name:
-        error = 'you didn\'t provide the album name'
-
-    try:
-        songs = json.loads(songs_str)
-        if not isinstance(songs, list):
-            raise Exception()
-    except:
-        return 'please provide songs in the correct format'
-
-    user = auth.get_user_by_credentials(username, password)
-    if user is None:
-        return 'wrong credentials'
-
-    response_text = ''
-
-    artist = db.get_artist_by_name(album_artist)
-    artist_id = None
-    if artist is None:
-        artist_id = db.add_artist(album_artist)
-    else:
-        artist_id = artist['id']
-
-    album_image_file_id = add_user_static_file(user['id'], album_image_file, None)
-
-    # but if the artist doesn't already exist.. then the album also doesn't exist
-    album = db.get_album(album_name, artist_id)
-    album_id = None
-    if album is None:
-        album_id = db.add_album(user['id'], album_name, artist_id)
-    else:
-        album_id = album['id']
-
-    for song in songs:
-        song_name = None
-        audio_duration = None
-        song_lyrics = None
-        audio_comment = None
-        audio_file_name = None
-        audio_file = None
-
-        if 'name' in song:
-            song_name = song['name']
-        if 'duration' in song:
-            audio_duration = song['duration']
-        if 'lyrics' in song:
-            song_lyrics = song['lyrics']
-        if 'audio_comment' in song:
-            comment = song['audio_comment']
-        if 'audio_file_name' in song:
-            audio_file_name = song['audio_file_name']
-
-        error = None
-
-        if not song_name:
-            error = 'you did not provide a songs name'
-        elif not audio_duration:
-            error = 'you did not provide a songs audio duration'
-        elif not audio_file_name:
-            error = 'you did not provide the image file name for song {}'.format(song_name)
-
-        if error:
-            return error
-        
-        if not audio_file_name in request.files:
-            return 'you did not provide the audio file {}'.format(audio_file_name)
-
-        audio_file = request.files[audio_file_name]
-
-        song_id = db.add_song(user['id'], song_name, song_lyrics)
-        db.add_album_song(song_id, artist_id)
-
-        audio_file_id = db.add_user_static_file(user['id'], audio_file, audio_comment)
-        db.add_song_audio(song_id, audio_file_id, audio_duration)
-        db.add_song_image(song_id, album_image_file_id)
-
-        response_text += 'added song \'{}\'\n'.format(song_name)
 
 @bp.route('/songs', methods=['POST'])
 def all_songs_route():
