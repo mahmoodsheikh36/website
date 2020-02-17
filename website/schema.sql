@@ -1,3 +1,5 @@
+PRAGMA foreign_keys = OFF;
+
 CREATE TABLE IF NOT EXISTS requests (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   ip TEXT NOT NULL,
@@ -35,6 +37,7 @@ CREATE TABLE IF NOT EXISTS songs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   time_added int,
   owner_id INTEGER NOT NULL,
+  name TEXT NOT NULL,
   FOREIGN KEY (owner_id) REFERENCES users (id)
 );
 
@@ -162,14 +165,6 @@ CREATE TABLE IF NOT EXISTS song_lyrics (
   FOREIGN KEY (song_id) REFERENCES songs (id)
 );
 
-CREATE TABLE IF NOT EXISTS song_names (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  song_id INTEGER NOT NULL,
-  name TEXT NOT NULL,
-  time_added int,
-  FOREIGN KEY (song_id) REFERENCES songs (id)
-);
-
 CREATE TABLE IF NOT EXISTS liked_songs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   song_id INTEGER NOT NULL,
@@ -200,4 +195,12 @@ CREATE TABLE IF NOT EXISTS playlist_song_removals (
   time_added int,
   FOREIGN KEY (song_id) REFERENCES songs (id),
   FOREIGN KEY (playlist_id) REFERENCES playlists (id)
+);
+
+CREATE TABLE IF NOT EXISTS deleted_albums (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  album_id INTEGER NOT NULL,
+  owner_id INTEGER NOT NULL,
+  time_added int,
+  FOREIGN KEY (owner_id) REFERENCES users (id)
 );
