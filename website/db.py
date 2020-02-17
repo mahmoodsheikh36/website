@@ -69,13 +69,13 @@ def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
 
-def add_song(owner_id):
+def add_song(owner_id, song_name):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-        'INSERT INTO songs (owner_id, time_added)\
-         VALUES (?, ?)',
-        (owner_id, current_time()))
+        'INSERT INTO songs (owner_id, name, time_added)\
+         VALUES (?, ?, ?)',
+        (owner_id, song_name, current_time()))
     db.commit()
     return db_cursor.lastrowid
 
@@ -102,8 +102,8 @@ def add_song_audio(song_id, user_static_file_id, duration, bitrate):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO song_audio (song_id, user_static_file_id, duration, time_added)\
-       VALUES (?, ?, ?, ?)', (song_id, user_static_file_id, duration, current_time())
+      'INSERT INTO song_audio (song_id, user_static_file_id, duration, bitrate, time_added)\
+       VALUES (?, ?, ?, ?, ?)', (song_id, user_static_file_id, duration, bitrate, current_time())
     )
     db.commit()
     return db_cursor.lastrowid
@@ -156,11 +156,11 @@ def get_user_songs(owner_id, after_time=None):
     db_cursor = db.cursor()
     if after_time is None:
         songs = db_cursor.execute(
-            'SELECT id,time_added FROM songs WHERE owner_id = ?', (owner_id,)
+            'SELECT * FROM songs WHERE owner_id = ?', (owner_id,)
         ).fetchall()
     else:
         songs = db_cursor.execute(
-            'SELECT id,time_added FROM songs WHERE owner_id = ? AND time_added > ?',
+            'SELECT * FROM songs WHERE owner_id = ? AND time_added > ?',
             (owner_id, after_time)
         ).fetchall()
     return songs
@@ -286,7 +286,7 @@ def add_album(owner_id, name, artist_id):
     db.commit()
     return db_cursor.lastrowid
 
-def get_album_image_file(album_id):
+def get_album_image(album_id):
     db = get_db()
     album_image = db.execute(
         'SELECT * FROM album_images WHERE album_id = ?',
@@ -555,19 +555,6 @@ def get_user_song_lyrics(user_id, after_time=None):
                 (user_id, after_time)
         ).fetchall()
 
-def get_user_song_names(user_id, after_time=None):
-    db = get_db()
-    if after_time is None:
-        return db.execute(
-                'SELECT song_names.* FROM song_names JOIN songs ON songs.id = song_names.song_id AND songs.owner_id = ?',
-                (user_id,)
-        ).fetchall()
-    else:
-        return db.execute(
-                'SELECT song_names.* FROM song_names JOIN songs ON songs.id = song_names.song_id AND songs.owner_id = ? AND song_names.time_added > ?',
-                (user_id, after_time)
-        ).fetchall()
-
 def get_user_liked_songs(user_id, after_time=None):
     db = get_db()
     if after_time is None:
@@ -620,17 +607,6 @@ def get_playlist_song_removals(user_id, after_time=None):
                 (user_id, after_time)
         ).fetchall()
 
-def add_song_name(song_id, song_name):
-    db = get_db()
-    db_cursor = db.cursor()
-    db_cursor.execute(
-        'INSERT INTO song_names (song_id, name, time_added)\
-         VALUES (?, ?, ?)',
-        (song_id, song_name, current_time())
-    )
-    db.commit()
-    return db_cursor.lastrowid
-
 def get_album_song_by_index(album_id, index_in_album):
     return get_db().execute(
             'SELECT * FROM album_songs WHERE album_id = ? AND index_in_album = ?',
@@ -653,3 +629,138 @@ def get_album(album_id):
             'SELECT * FROM albums WHERE id = ?',
             (album_id,)
     ).fetchone()
+
+def delete_album(album_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'DELETE FROM albums WHERE id = ?',
+        (album_id,)
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def delete_album_image(album_image_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'DELETE FROM album_images WHERE id = ?',
+        (album_image_id,)
+    )
+    db.commit()
+
+def delete_user_file(user_file_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    user_static_file = get_user_static_file(user_file_id)
+    if user_static_file is None:
+        return
+    file_name = user_static_file['file_name']
+    file_path = os.path.join(get_user_static_files_dir(), file_name)
+    if os.path.exists(file_path):
+        os.remove(file_path)
+    db_cursor.execute(
+        'DELETE FROM user_static_files WHERE id = ?',
+        (user_file_id,)
+    )
+    db.commit()
+
+def delete_album_song(album_songs_row_id):
+    db = get_db()
+    db.cursor().execute(
+        'DELETE FROM album_songs WHERE id = ?',
+        (album_songs_row_id,)
+    )
+    db.commit()
+
+def delete_song(song_id):
+    db = get_db()
+    db.cursor().execute(
+        'DELETE FROM songs WHERE id = ?',
+        (song_id,)
+    )
+    db.commit()
+
+def delete_song_audio(song_audio_id):
+    db = get_db()
+    db.cursor().execute(
+        'DELETE FROM song_audio WHERE id = ?',
+        (song_audio_id,)
+    )
+    db.commit()
+
+def delete_song_image(song_image_id):
+    db = get_db()
+    db.cursor().execute(
+        'DELETE FROM song_images WHERE id = ?',
+        (song_image_id,)
+    )
+    db.commit()
+
+def delete_song_image(song_image_id):
+    db = get_db()
+    db.cursor().execute(
+        'DELETE FROM song_images WHERE id = ?',
+        (song_image_id,)
+    )
+    db.commit()
+
+def get_song_audio(song_id):
+    return get_db().execute(
+            'SELECT * FROM song_audio WHERE song_id = ?',
+            (song_id,)
+    ).fetchall()
+
+def get_song_images(song_id):
+    return get_db().execute(
+            'SELECT * FROM song_images WHERE song_id = ?',
+            (song_id,)
+    ).fetchall()
+
+def delete_song_artist(song_artist_row_id):
+    db = get_db()
+    db.cursor().execute(
+        'DELETE FROM song_artists WHERE id = ?',
+        (song_artist_row_id,)
+    )
+    db.commit()
+
+def get_song_lyrics(song_id):
+    return get_db().execute(
+            'SELECT * FROM song_lyrics WHERE song_id = ?',
+            (song_id,)
+    ).fetchall()
+
+def delete_song_lyrics(song_lyrics_row_id):
+    db = get_db()
+    db.cursor().execute(
+        'DELETE FROM song_lyrics WHERE id = ?',
+        (song_lyrics_row_id,)
+    )
+    db.commit()
+
+def add_deleted_album(owner_id, album_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO deleted_albums (owner_id, album_id, time_added)\
+         VALUES (?, ?, ?)',
+        (owner_id, album_id, current_time())
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def get_user_deleted_albums(user_id, after_time):
+    db = get_db()
+    db_cursor = db.cursor()
+    if after_time is None:
+        songs = db_cursor.execute(
+            'SELECT album_id,time_added FROM deleted_albums WHERE owner_id = ?',
+            (user_id,)
+        ).fetchall()
+    else:
+        songs = db_cursor.execute(
+            'SELECT album_id,time_added FROM deleted_albums WHERE owner_id = ? AND time_added > ?',
+            (user_id, after_time)
+        ).fetchall()
+    return songs
