@@ -5,3 +5,4 @@
 2. the entire /music route needs to be looked at, it makes no tests to see what exists in the database before adding new content, like if a playlist_songs row was added through /music/add_song_to_playlist there is no guarentee that the song_id of that row actually refers to a valid song
 3. I HAVE TO PREVENT DUPLICATES FROM ENTERING THE DAMN DATABASE !!!!
 4. empty artist, song, album names should be rejected
+5. allow_anonymous should be set accordingly in music.py
