@@ -44,6 +44,47 @@ def check_auth(request_form, request_method=None, allow_anonymous=False):
 
     return user, error_message
 
+def delete_album(user_id, album_id):
+    album_songs = db.get_album_songs(album_id)
+    for album_song in album_songs:
+        db.delete_album_song(album_song['id'])
+        song_id = album_song['song_id']
+        db.delete_song(song_id)
+        for song_image in db.get_song_images(song_id):
+            db.delete_user_file(song_image['user_static_file_id'])
+            db.delete_song_image(song_image['id'])
+        for song_audio_row in db.get_song_audio(song_id):
+            db.delete_user_file(song_audio_row['user_static_file_id'])
+            db.delete_song_audio(song_audio_row['id'])
+        for song_artist_row in db.get_song_artists(song_id):
+            db.delete_song_artist(song_artist_row['id'])
+        for song_lyrics_row in db.get_song_lyrics(song_id):
+            db.delete_song_lyrics(song_lyrics_row['id'])
+
+    db.delete_album(album_id)
+    album_image = db.get_album_image(album_id)
+    db.delete_album_image(album_image['id'])
+    db.delete_user_file(album_image['user_static_file_id'])
+    db.add_deleted_album(user_id, album_id)
+
+@bp.route('/delete_album', methods=('POST',))
+def delete_album_route():
+    user, error_message = check_auth(request.form,
+                                     request_method=request.method,
+                                     allow_anonymous=False)
+    if error_message:
+        return {'success': False, 'error': error_message}
+
+    album_id = request.args.get('id')
+    if album_id is None:
+        return {'success': False, 'error': error}
+
+    if db.get_album(album_id) is None:
+        return {'success': False, 'error': 'no album with such id'}
+
+    delete_album(user['id'], album_id)
+    return {'success': True, 'data': {}}
+
 @bp.route('/albums_prettified', methods=('POST', 'GET'))
 def get_albums_prettified_route():
     user, error_message = check_auth(request.form,
@@ -153,9 +194,6 @@ def metadata_route():
     db_song_lyrics = db.get_user_song_lyrics(user['id'], after_time)
     metadata['song_lyrics'] = db_song_lyrics
 
-    db_song_names = db.get_user_song_names(user['id'], after_time)
-    metadata['song_names'] = db_song_names
-
     db_liked_songs = db.get_user_liked_songs(user['id'], after_time)
     metadata['liked_songs'] = db_liked_songs
 
@@ -168,7 +206,10 @@ def metadata_route():
     db_playlist_song_removals = db.get_playlist_song_removals(user['id'], after_time)
     metadata['playlist_song_removals'] = db_playlist_song_removals
 
-    return Response(json.dumps(metadata), mimetype='application/json')
+    if after_time is not None:
+        metadata['deleted_albums'] = db.get_user_deleted_albums(user['id'], after_time)
+
+    return metadata
 
 @bp.route('/add_playlist', methods=('POST',))
 def add_playlist_route():
@@ -176,7 +217,7 @@ def add_playlist_route():
                              request_method=request.method,
                              allow_anonymous=False)
     if error:
-        return error
+        return {'success': False, 'error': error}
 
     playlist_name = request.args.get('name')
     if playlist_name is None:
@@ -331,8 +372,7 @@ def add_song_to_album_route():
         if artist is None:
             return {'success': False, 'error': 'no artist with id ' + str(artist_id)}
 
-    song_id = db.add_song(user['id'])
-    song_name_id = db.add_song_name(song_id, song_name)
+    song_id = db.add_song(user['id'], song_name)
     audio_file_id = db.add_user_static_file(
             user['id'],
             song_audio_file,
@@ -342,7 +382,7 @@ def add_song_to_album_route():
     for artist_id in artist_ids:
         db.add_song_artist(song_id, artist_id)
     db.add_album_song(song_id, album_id, index_in_album)
-    db.add_song_image(song_id, db.get_album_image_file(album_id)['user_static_file_id'])
+    db.add_song_image(song_id, db.get_album_image(album_id)['user_static_file_id'])
 
     return {'success': True, 'data': {'id': song_id}}
 
@@ -402,8 +442,7 @@ def add_single_song_route():
     except ValueError as e:
         return {'success': False, 'error': 'duration should be an integer'}
 
-    song_id = db.add_song(user['id'])
-    song_name_id = db.add_song_name(song_id, song_name)
+    song_id = db.add_song(user['id'], song_name)
     image_file_id = db.add_user_static_file(
             user['id'],
             song_image_file,
