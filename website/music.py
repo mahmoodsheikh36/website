@@ -85,44 +85,6 @@ def delete_album_route():
     delete_album(user['id'], album_id)
     return {'success': True, 'data': {}}
 
-@bp.route('/albums_prettified', methods=('POST', 'GET'))
-def get_albums_prettified_route():
-    user, error_message = check_auth(request.form,
-                                     request_method=request.method,
-                                     allow_anonymous=True)
-    if error_message:
-        return error_message
-    db_albums = db.get_user_albums(user['id'])
-    albums = []
-    for db_album in db_albums:
-        album = {}
-        album['id'] = db_album['id']
-        album['name'] = db_album['name']
-        album['artist_id'] = db_album['artist_id']
-        album['time_added'] = db_album['time_added']
-        db_album_songs = db.get_album_songs(album['id'])
-        album_songs = []
-        for db_album_song in db_album_songs:
-            db_song = db.get_song(db_album_song['song_id'])
-            song = {}
-            song['id'] = db_song['id']
-            song['name'] = db_song['name']
-            song['lyrics'] = db_song['lyrics']
-            song['time_added'] = db_song['time_added']
-            song_artists = []
-            song_artist_relation = db.get_song_artists(song['id'])
-            for song_artist in song_artist_relation:
-                db_artist = db.get_artist(song_artist['artist_id'])
-                artist = {}
-                artist['name'] = db_artist['name']
-                artist['time_added'] = db_artist['time_added']
-                song_artists.append(artist)
-            song['artists'] = song_artists
-            album_songs.append(song)
-        album['songs'] = album_songs
-        albums.append(album)
-    return Response(json.dumps(albums), mimetype='application/json')
-
 @bp.route('/albums', methods=('POST', 'GET'))
 def get_albums_route():
     user, error_message = check_auth(request.form,
@@ -501,139 +463,55 @@ def add_song_to_playlist_route():
     playlist_songs_row_id = db.add_playlist_song(playlist_id, song_id)
     return {'success': True, 'data': {'playlist_songs_row_id': playlist_song_row_id}}
 
-@bp.route('/singles', methods=('POST',))
-def singles_route():
-    user, error = check_auth(request.form)
+@bp.route('/add_audio_to_song', methods=('POST',))
+def add_audio_to_song_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
     if error:
-        return error
-    db_single_songs = db.get_user_single_songs(user['id'])
-    single_songs = []
-    for db_single_song in db_single_songs:
-        single_song = {}
-        db_song = db.get_song(db_single_song['song_id'])
-        single_song['id'] = db_song['id']
-        single_song['name'] = db_song['name']
-        single_song['lyrics'] = db_song['lyrics']
-        single_song['artist_id'] = db_song['name']
-        single_songs.append(single_song)
-    return Response(json.dumps(single_songs), mimetype='application/json')
+        return {'success': False, 'error': error}
 
-@bp.route('/songs', methods=['POST'])
-def all_songs_route():
-    username = None
-    password = None
-
-    if 'username' in request.form:
-        username = request.form['username']
-    if 'password' in request.form:
-        password = request.form['password']
-
-    is_mahmooz = username == 'mahmooz'
-
-    if not username:
-        return 'no username provided'
-    elif not password and not is_mahmooz:
-        return 'no password provided'
-
-    user = None
-    if not is_mahmooz:
-        user = auth.get_user_by_credentials(username, password)
-        if user is None:
-            return 'wrong credentials'
+    song_id = None
+    if 'song_id' in request.form:
+        song_id = request.form['song_id']
     else:
-        user = db.get_user_by_username('mahmooz')
+        return {'success': False, 'error': 'song_id wasnt provided'}
+    try:
+        song_id = int(song_id)
+    except ValueError as e:
+        return {'success': False, 'error': 'song_id must be an integer'}
 
-    after_id = request.args.get('after_id')
-    if after_id != None:
-        try:
-            db_songs = db.get_user_songs_after_id(int(user['id'], after_id))
-        except ValueError as e:
-            return Response('after_id has to be an integer')
+    audio_file = None
+    if 'audio' in request.files:
+        audio_file = request.files['image']
     else:
-        db_songs = db.get_user_songs(user['id'])
+        return {'success': False, 'error': 'no audio provided'}
 
-    songs = []
-    for db_song in db_songs:
-        song = {}
-        song['id'] = db_song['id']
-        song['name'] = db_song['name']
-        song['artist'] = db_song['artist']
-        song['album'] = db_song['album']
-        song['lyrics'] = db_song['lyrics']
-        first_song_audio = db.get_song_first_audio_file(song['id'])
-        last_song_audio = db.get_song_last_audio(song['id'])
-        song['date_added'] = first_song_audio['add_timestamp']
-        song['duration'] = last_song_audio['duration']
-        songs.append(song)
-
-    return Response(json.dumps(songs), mimetype='application/json')
-
-@bp.route('/audio', methods=['POST'])
-def get_song_audio_route():
-    username = None
-    password = None
-
-    if 'username' in request.form:
-        username = request.form['username']
-    if 'password' in request.form:
-        password = request.form['password']
-
-    is_mahmooz = username == 'mahmooz'
-
-    if not username:
-        return 'no username provided'
-    elif not password and not is_mahmooz:
-        return 'no password provided'
-
-    user = None
-    if not is_mahmooz:
-        user = auth.get_user_by_credentials(username, password)
-        if user is None:
-            return 'wrong credentials'
+    audio_duration = None
+    if 'duration' in request.form:
+        audio_duration = request.form['duration']
     else:
-        user = db.get_user_by_username('mahmooz')
+        return {'success': False, 'error': 'audio duration wasnt providead'}
+    try:
+        audio_duration = int(audio_duration)
+    except ValueError as e:
+        return {'success': False, 'error': 'audio duration must be an integer'}
 
-    song_id = request.args.get('song_id')
-    if song_id is None:
-        return 'please provide song_id as a query string'
-
-    file_path = db.get_song_last_audio_file_path(song_id)
-    if file_path is None:
-        return 'no audio found for a song with an id of {}'.format(song_id)
-
-    return send_file(file_path)
-
-@bp.route('/image', methods=['POST'])
-def get_song_image_route():
-    username = None
-    password = None
-
-    if 'username' in request.form:
-        username = request.form['username']
-    if 'password' in request.form:
-        password = request.form['password']
-
-    is_mahmooz = username == 'mahmooz'
-
-    if not username:
-        return 'no username provided'
-    elif not password and not is_mahmooz:
-        return 'no password provided'
-
-    user = None
-    if not is_mahmooz:
-        user = auth.get_user_by_credentials(username, password)
-        if user is None:
-            return 'wrong credentials'
+    audio_bitrate = None
+    if 'bitrate' in request.form:
+        audio_bitrate = request.form['bitrate']
     else:
-        user = db.get_user_by_username('mahmooz')
+        return {'success': False, 'error': 'audio bitrate wasnt providead'}
+    try:
+        audio_bitrate = int(audio_bitrate)
+    except ValueError as e:
+        return {'success': False, 'error': 'audio bitrate must be an integer'}
 
-    song_id = request.args.get('song_id')
-    if song_id is None:
-        return 'please provide song_id as a query string'
+    audio_file_id = db.add_user_static_file(
+            user['id'],
+            audio_file,
+            None,
+            None)
+    db.add_song_audio(song_id, audio_file_id, audio_duration, audio_bitrate)
 
-    file_path = db.get_song_last_image_file_path(song_id)
-    if file_path is None:
-        return 'no image found for a song with an id of {}'.format(song_id)
-
-    return send_file(file_path)
+    return {'success': True, 'data': {}}
