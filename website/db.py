@@ -79,12 +79,12 @@ def add_song(owner_id, song_name):
     db.commit()
     return db_cursor.lastrowid
 
-def add_single_song(song_id):
+def add_single_song(song_id, year):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-      'INSERT INTO single_songs (song_id, time_added)\
-       VALUES (?, ?)', (song_id, current_time()))
+      'INSERT INTO single_songs (song_id, time_added, year)\
+       VALUES (?, ?, ?)', (song_id, current_time(), year))
     db.commit()
     return db_cursor.lastrowid
 
@@ -269,19 +269,13 @@ def add_artist(name, owner_id):
     db.commit()
     return db_cursor.lastrowid
 
-# this should not be used :( because 2 artists can ofc have the same name
-def get_artist_by_name(name):
-    db = get_db()
-    artist = db.execute('SELECT * FROM artists WHERE name = ?', (name,)).fetchone()
-    return artist
-
-def add_album(owner_id, name, artist_id):
+def add_album(owner_id, name, artist_id, year, cue_file_id, log_file_id):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-        'INSERT INTO albums (owner_id, name, artist_id, time_added)\
-         VALUES (?, ?, ?, ?)',
-        (owner_id, name, artist_id, current_time())
+        'INSERT INTO albums (owner_id, name, artist_id, time_added, cue_file_id, log_file_id, year)\
+         VALUES (?, ?, ?, ?, ?, ?, ?)',
+        (owner_id, name, artist_id, current_time(), cue_file_id, log_file_id, year)
     )
     db.commit()
     return db_cursor.lastrowid
@@ -717,7 +711,7 @@ def get_song_images(song_id):
             (song_id,)
     ).fetchall()
 
-def delete_song_artist(song_artist_row_id):
+def delete_song_artist_by_row_id(song_artist_row_id):
     db = get_db()
     db.cursor().execute(
         'DELETE FROM song_artists WHERE id = ?',
@@ -764,3 +758,43 @@ def get_user_deleted_albums(user_id, after_time):
             (user_id, after_time)
         ).fetchall()
     return songs
+
+def add_album_artist_edit(owner_id, album_id, old_artist_id, new_artist_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO album_artist_edits (album_id, owner_id, old_artist_id, time_added, new_artist_id)\
+         VALUES (?, ?, ?, ?, ?)',
+        (album_id, owner_id, old_artist_id, current_time(), new_artist_id)
+    )
+    db.commit()
+    return db_cursor.lastrowid
+
+def update_album_artist_id(album_id, new_artist_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'UPDATE albums SET artist_id = ? WHERE id = ?',
+        (new_artist_id, album_id)
+    )
+    db.commit()
+
+def delete_song_artist(song_id, artist_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    songs = db_cursor.execute(
+        'DELETE FROM song_artists WHERE song_id = ? AND artist_id = ?',
+        (song_id, artist_id,)
+    )
+    db.commit()
+
+def add_song_artist_edit(owner_id, song_id, old_artist_id, new_artist_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    db_cursor.execute(
+        'INSERT INTO song_artist_edits (song_id, owner_id, old_artist_id, new_artist_id, time_added)\
+         VALUES (?, ?, ?, ?, ?)',
+        (album_id, owner_id, old_artist_id, new_artist_id, current_time())
+    )
+    db.commit()
+    return db_cursor.lastrowid
