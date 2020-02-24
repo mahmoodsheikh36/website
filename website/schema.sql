@@ -63,6 +63,7 @@ CREATE TABLE IF NOT EXISTS album_songs (
 CREATE TABLE IF NOT EXISTS single_songs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   song_id INTEGER NOT NULL,
+  year INTEGER,
   time_added int,
   FOREIGN KEY (song_id) REFERENCES songs (id)
 );
@@ -101,8 +102,11 @@ CREATE TABLE IF NOT EXISTS albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
   artist_id INTEGER NOT NULL,
+  year INTEGER,
   owner_id INTEGER NOT NULL,
   time_added int,
+  cue_file_id INTEGER,
+  log_file_id INTEGER,
   FOREIGN KEY (artist_id) REFERENCES artists (id),
   FOREIGN KEY (owner_id) REFERENCES users (id)
 );
@@ -203,4 +207,28 @@ CREATE TABLE IF NOT EXISTS deleted_albums (
   owner_id INTEGER NOT NULL,
   time_added int,
   FOREIGN KEY (owner_id) REFERENCES users (id)
+);
+
+CREATE TABLE IF NOT EXISTS album_artist_edits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  album_id INTEGER NOT NULL,
+  owner_id INTEGER NOT NULL,
+  old_artist_id INTEGER NOT NULL,
+  new_artist_id INTEGER NOT NULL,
+  time_added int,
+  FOREIGN KEY (owner_id) REFERENCES users (id),
+  FOREIGN KEY (old_artist_id) REFERENCES artists (id),
+  FOREIGN KEY (new_artist_id) REFERENCES artists (id)
+);
+
+CREATE TABLE IF NOT EXISTS song_artist_edits (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  song_id INTEGER NOT NULL,
+  owner_id INTEGER NOT NULL,
+  old_artist_id INTEGER NOT NULL,
+  new_artist_id INTEGER NOT NULL,
+  time_added int,
+  FOREIGN KEY (owner_id) REFERENCES users (id),
+  FOREIGN KEY (old_artist_id) REFERENCES artists (id),
+  FOREIGN KEY (new_artist_id) REFERENCES artists (id)
 );
