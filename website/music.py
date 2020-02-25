@@ -273,6 +273,49 @@ def add_album_route():
 
     return {'success': True, 'data': {'album_id': album_id}}
 
+@bp.route('/add_existing_song_to_album', methods=('POST',))
+def add_existing_song_to_album_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+    if error:
+        return {'success': False, 'error': error}
+
+    album_id = request.args.get('album_id')
+    if album_id is None:
+        return {'success': False, 'error': 'no album_id provided'}
+    try:
+        album_id = int(album_id)
+    except ValueError as e:
+        return {'success': False, 'error': 'album_id should be an integer'}
+
+    album = db.get_album(album_id)
+    if album is None:
+        return {'success': False, 'error': 'no album with id: ' + str(album_id)}
+
+    index_in_album = request.args.get('index_in_album')
+    if index_in_album is None:
+        return {'success': False, 'error': 'song index in album wasnt provided'}
+    try:
+        index_in_album = int(index_in_album)
+    except ValueError as e:
+        return {'success': False, 'error': 'index_in_album should be an integer'}
+
+    if db.get_album_song_by_index(album_id, index_in_album) is not None:
+        return {'success': False, 'error': 'a song with this index already exists in this album'}
+
+    song_id = request.args.get('song_id')
+    if song_id is None:
+        return {'success': False, 'error': 'song_id wasnt provided'}
+    try:
+        song_id = int(song_id)
+    except ValueError as e:
+        return {'success': False, 'error': 'song_id should be an integer'}
+
+    db.add_album_song(song_id, album_id, index_in_album)
+
+    return {'success': True, 'data': {}}
+
 @bp.route('/add_song_to_album', methods=('POST',))
 def add_song_to_album_route():
     user, error = check_auth(request.form,
