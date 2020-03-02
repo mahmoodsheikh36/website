@@ -44,22 +44,34 @@ def check_auth(request_form, request_method=None, allow_anonymous=False):
 
     return user, error_message
 
+def delete_song(song_id):
+    db.delete_song(song_id)
+    if db.is_song_liked(song_id):
+        db.add_liked_song_removal(song_id)
+    for song_image in db.get_song_images(song_id):
+        db.delete_user_file(song_image['user_static_file_id'])
+        db.delete_song_image(song_image['id'])
+    for song_audio_row in db.get_song_audio(song_id):
+        db.delete_user_file(song_audio_row['user_static_file_id'])
+        db.delete_song_audio(song_audio_row['id'])
+    for song_artist_row in db.get_song_artists(song_id):
+        db.delete_song_artist_by_row_id(song_artist_row['id'])
+    for song_lyrics_row in db.get_song_lyrics(song_id):
+        db.delete_song_lyrics(song_lyrics_row['id'])
+
+def delete_single(user_id, single_id):
+    db_single = db.get_single(single_id)
+    song_id = db_single['song_id']
+    delete_song(song_id)
+    db.delete_single(single_id)
+    db.add_deleted_single(user_id, single_id)
+
 def delete_album(user_id, album_id):
     album_songs = db.get_album_songs(album_id)
     for album_song in album_songs:
         db.delete_album_song(album_song['id'])
         song_id = album_song['song_id']
-        db.delete_song(song_id)
-        for song_image in db.get_song_images(song_id):
-            db.delete_user_file(song_image['user_static_file_id'])
-            db.delete_song_image(song_image['id'])
-        for song_audio_row in db.get_song_audio(song_id):
-            db.delete_user_file(song_audio_row['user_static_file_id'])
-            db.delete_song_audio(song_audio_row['id'])
-        for song_artist_row in db.get_song_artists(song_id):
-            db.delete_song_artist_by_row_id(song_artist_row['id'])
-        for song_lyrics_row in db.get_song_lyrics(song_id):
-            db.delete_song_lyrics(song_lyrics_row['id'])
+        delete_song(song_id)
 
     db.delete_album(album_id)
     album_image = db.get_album_image(album_id)
@@ -77,12 +89,30 @@ def delete_album_route():
 
     album_id = request.args.get('id')
     if album_id is None:
-        return {'success': False, 'error': error}
+        return {'success': False, 'error': 'album_id wasnt provided'}
 
     if db.get_album(album_id) is None:
         return {'success': False, 'error': 'no album with such id'}
 
     delete_album(user['id'], album_id)
+    return {'success': True, 'data': {}}
+
+@bp.route('/delete_single', methods=('POST',))
+def delete_single_route():
+    user, error_message = check_auth(request.form,
+                                     request_method=request.method,
+                                     allow_anonymous=False)
+    if error_message:
+        return {'success': False, 'error': error_message}
+
+    single_id = request.args.get('id')
+    if single_id is None:
+        return {'success': False, 'error': 'single_id wasnt provided'}
+
+    if db.get_single(single_id) is None:
+        return {'success': False, 'error': 'no single with id: {}'.format(single_id)}
+
+    delete_single(user['id'], single_id)
     return {'success': True, 'data': {}}
 
 @bp.route('/metadata', methods=('POST', 'GET'))
@@ -139,7 +169,14 @@ def metadata_route():
     metadata['song_lyrics'] = db_song_lyrics
 
     db_liked_songs = db.get_user_liked_songs(user['id'], after_time)
-    metadata['liked_songs'] = db_liked_songs
+    liked_songs = []
+    for db_liked_song in db_liked_songs:
+        liked_song = {}
+        liked_song['song_id'] = db_liked_song['song_id']
+        liked_song['id'] = db_liked_song['id']
+        liked_song['time_added'] = db_liked_song['time_added']
+        liked_songs.append(liked_song)
+    metadata['liked_songs'] = liked_songs
 
     db_liked_song_removals = db.get_user_liked_song_removals(user['id'], after_time)
     metadata['liked_song_removals'] = db_liked_song_removals
@@ -152,6 +189,9 @@ def metadata_route():
 
     if after_time is not None:
         metadata['deleted_albums'] = db.get_user_deleted_albums(user['id'], after_time)
+
+    if after_time is not None:
+        metadata['deleted_singles'] = db.get_user_deleted_singles(user['id'], after_time)
 
     return metadata
 
@@ -488,6 +528,25 @@ def add_single_song_route():
         db.add_song_artist(song_id, artist_id)
 
     return {'success': True, 'data': {'id': song_id}}
+
+@bp.route('/unlike_song', methods=('POST',))
+def unlike_song_route():
+    user, error = check_auth(request.form,
+                             request_method=request.method,
+                             allow_anonymous=False)
+    if error:
+        return {'success': False, 'error': error}
+
+    song_id = request.args.get('id')
+    if song_id is None:
+        return {'success': False, 'error': 'no song_id provided'}
+    try:
+        song_id = int(song_id)
+    except ValueError as e:
+        return {'success': False, 'error': 'song_id should be an integer'}
+
+    liked_songs_row_id = db.add_liked_song_removal(song_id)
+    return {'success': True, 'data': {'liked_songs_row_id': liked_songs_row_id}}
 
 @bp.route('/like_song', methods=('POST',))
 def like_song_route():
