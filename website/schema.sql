@@ -180,7 +180,9 @@ CREATE TABLE IF NOT EXISTS liked_song_removals (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   song_id INTEGER NOT NULL,
   time_added int,
-  FOREIGN KEY (song_id) REFERENCES songs (id)
+  owner_id INTEGER NOT NULL,
+  FOREIGN KEY (song_id) REFERENCES songs (id),
+  FOREIGN KEY (owner_id) REFERENCES users (id)
 );
 
 CREATE TABLE IF NOT EXISTS playlist_song_additions (
@@ -209,6 +211,14 @@ CREATE TABLE IF NOT EXISTS deleted_albums (
   FOREIGN KEY (owner_id) REFERENCES users (id)
 );
 
+CREATE TABLE IF NOT EXISTS deleted_single_songs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  single_song_id INTEGER NOT NULL,
+  owner_id INTEGER NOT NULL,
+  time_added int,
+  FOREIGN KEY (owner_id) REFERENCES users (id)
+);
+
 CREATE TABLE IF NOT EXISTS album_artist_edits (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   album_id INTEGER NOT NULL,
@@ -231,4 +241,27 @@ CREATE TABLE IF NOT EXISTS song_artist_edits (
   FOREIGN KEY (owner_id) REFERENCES users (id),
   FOREIGN KEY (old_artist_id) REFERENCES artists (id),
   FOREIGN KEY (new_artist_id) REFERENCES artists (id)
+);
+
+CREATE TABLE IF NOT EXISTS playbacks (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_id INTEGER NOT NULL,
+  song_id INTEGER NOT NULL,
+  start_time int,
+  end_time int,
+  FOREIGN KEY (song_id) REFERENCES songs (id),
+  FOREIGN KEY (owner_id) REFERENCES users (id)
+);
+
+CREATE TABLE IF NOT EXISTS pauses (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  playback_id INTEGER NOT NULL,
+  time int,
+  FOREIGN KEY (song_id) REFERENCES songs (id),
+);
+
+CREATE TABLE IF NOT EXISTS resumes (
+);
+
+CREATE TABLE IF NOT EXISTS seeks (
 );
