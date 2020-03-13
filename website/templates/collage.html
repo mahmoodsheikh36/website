@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>{{ collage_title }}</title>
+{% endblock %}
+
+{% block content %}
+    {% for image in images %}
+      <img alt="img" src="{{ url_for('static.static_file', file_id=image['file_id']) }}" />
+    {% endfor %}
+{% endblock %}

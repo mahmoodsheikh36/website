@@ -3,15 +3,11 @@ from flask import current_app as app
 from flask import (
     Blueprint, Response, request, send_from_directory, send_file
 )
-from werkzeug.utils import secure_filename
-import os
-import sqlite3
-import json
-import uuid
 
 from website import auth
 from website import db
 from website.utils import current_time
+from website.ffmpeg import get_audio_stream_format_data
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
@@ -144,29 +140,20 @@ def metadata_route():
     db_single_songs = db.get_user_single_songs(user['id'], after_time)
     metadata['single_songs'] = db_single_songs
 
-    db_song_images = db.get_user_song_images(user['id'], after_time)
-    metadata['song_images'] = db_song_images
+    db_user_album_artists = db.get_user_album_artists(user['id'], after_time)
+    metadata['album_artists'] = db_user_album_artists
 
-    db_album_images = db.get_user_album_images(user['id'], after_time)
-    metadata['album_images'] = db_album_images
+    #db_playlists = db.get_user_playlists(user['id'], after_time)
+    #metadata['playlists'] = db_playlists
 
-    db_song_audio = db.get_user_song_audio(user['id'], after_time)
-    metadata['song_audio'] = db_song_audio
+    #db_playlist_songs = db.get_user_playlist_songs(user['id'], after_time)
+    #metadata['playlist_songs'] = db_playlist_songs
 
-    db_playlists = db.get_user_playlists(user['id'], after_time)
-    metadata['playlists'] = db_playlists
+    #db_playlist_images = db.get_user_playlist_images(user['id'], after_time)
+    #metadata['playlist_images'] = db_playlist_images
 
-    db_playlist_songs = db.get_user_playlist_songs(user['id'], after_time)
-    metadata['playlist_songs'] = db_playlist_songs
-
-    db_playlist_images = db.get_user_playlist_images(user['id'], after_time)
-    metadata['playlist_images'] = db_playlist_images
-
-    db_playlist_removals = db.get_user_playlist_removals(user['id'], after_time)
-    metadata['playlist_removals'] = db_playlist_removals
-
-    db_song_lyrics = db.get_user_song_lyrics(user['id'], after_time)
-    metadata['song_lyrics'] = db_song_lyrics
+    #db_playlist_removals = db.get_user_playlist_removals(user['id'], after_time)
+    #metadata['playlist_removals'] = db_playlist_removals
 
     db_liked_songs = db.get_user_liked_songs(user['id'], after_time)
     liked_songs = []
@@ -237,7 +224,7 @@ def add_artist():
     if artist_name is None:
         return {'success': False, 'error': 'please provide the artist\'s name'}
 
-    artist_id = db.add_artist(artist_name, user['id'])
+    artist_id = db.add_artist(artist_name)
     return {'success': True, 'data': {'id': artist_id}}
 
 @bp.route('/add_album', methods=('POST',))
@@ -249,16 +236,12 @@ def add_album_route():
         return {'success': False, 'error': error}
 
     album_name = request.args.get('album_name')
-    artist_id = request.args.get('artist_id')
     year = request.args.get('year')
     album_image_file = None
-    cue_file = None
-    log_file = None
+    artist_ids = []
 
     if album_name is None:
         return {'success': False, 'error': 'no album_name provided'}
-    if artist_id is None:
-        return {'success': False, 'error': 'no artist_id provided'}
     if year is None:
         return {'success': False, 'error': 'year wasn\'t provided'}
     try:
@@ -266,50 +249,31 @@ def add_album_route():
     except ValueError as e:
         return {'success': False, 'error': 'year should be an integer'}
 
+    artist_ids_str = request.args.get('artist_ids')
+    if artist_ids_str is None:
+        return {'success': False, 'error': 'artist_ids not provided'}
+
+    for artist_id_str in artist_ids_str.split(','):
+        try:
+            artist_ids.append(int(artist_id_str.strip()))
+        except ValueError as e:
+            return {'success': False, 'error': 'artist_ids should be a list of comma seperated integers'}
+
     if 'image' not in request.files:
         return {'success': False, 'error': 'no image provided'}
     else:
         album_image_file = request.files['image']
-    
-    if 'cue' in request.files:
-        cue_file = request.files['cue']
 
-    if 'log' in request.files:
-        log_file = request.files['log']
+    for artist_id in artist_ids:
+        artist = db.get_artist(artist_id)
+        if artist is None:
+            return {'success': False, 'error': 'no artist with id {}'.format(artist_id)}
 
-    try:
-        artist_id = int(artist_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'artist_id should be an integer'}
-    artist = db.get_artist(artist_id)
-    if artist is None:
-        return {'success': False, 'error': 'no such artist'}
+    image_file_id = db.add_file(album_image_file)
+    album_id = db.add_album(user['id'], album_name, year, image_file_id)
 
-    album = db.get_user_album(user['id'], album_name, artist_id)
-    if album is not None:
-        return {'success': False, 'error': 'album with this name exists for this artist already'}
-
-    cue_file_id = None
-    log_file_id = None
-    if cue_file is not None:
-        cue_file_id = db.add_user_static_file(
-                user['id'],
-                cue_file,
-                None,
-                None)
-    if log_file is not None:
-        log_file_id = db.add_user_static_file(
-                user['id'],
-                log_file,
-                None,
-                None)
-    album_id = db.add_album(user['id'], album_name, artist_id, year, cue_file_id, log_file_id)
-    album_image_file_id = db.add_user_static_file(
-            user['id'],
-            album_image_file,
-            None,
-            None)
-    db.add_album_image(album_id, album_image_file_id)
+    for artist_id in artist_ids:
+        db.add_album_artist(album_id, artist_id)
 
     return {'success': True, 'data': {'album_id': album_id}}
 
@@ -387,22 +351,6 @@ def add_song_to_album_route():
     if song_name == '':
         return {'success': False, 'error': 'song name cannot be an empty string'}
 
-    audio_duration = request.args.get('duration')
-    if audio_duration is None:
-        return {'success': False, 'error': 'the audio duration wasnt provided'}
-    try:
-        audio_duration = int(audio_duration)
-    except ValueError as e:
-        return {'success': False, 'error': 'duration should be an integer'}
-
-    audio_bitrate = request.args.get('bitrate')
-    if audio_bitrate is None:
-        return {'success': False, 'error': 'audio bitrate wasn\'t provided'}
-    try:
-        audio_bitrate = int(audio_bitrate)
-    except ValueError as e:
-        return {'success': False, 'error': 'audio bitrate should be an integer'}
-
     index_in_album = request.args.get('index_in_album')
     if index_in_album is None:
         return {'success': False, 'error': 'song index in album wasnt provided'}
@@ -430,17 +378,20 @@ def add_song_to_album_route():
         if artist is None:
             return {'success': False, 'error': 'no artist with id ' + str(artist_id)}
 
-    song_id = db.add_song(user['id'], song_name)
-    audio_file_id = db.add_user_static_file(
-            user['id'],
-            song_audio_file,
-            None,
-            None)
-    db.add_song_audio(song_id, audio_file_id, audio_duration, audio_bitrate)
+    audio_file_id = db.add_file(song_audio_file)
+    format_data = get_audio_stream_format_data(audio_file_id)
+
+    audio_duration = format_data['duration']
+    audio_bitrate = format_data['bitrate']
+    audio_codec = format_data['format_name']
+
+    song_id = db.add_song(user['id'], song_name, audio_file_id, audio_duration,
+                          audio_bitrate, audio_codec)
+
     for artist_id in artist_ids:
         db.add_song_artist(song_id, artist_id)
+
     db.add_album_song(song_id, album_id, index_in_album)
-    db.add_song_image(song_id, db.get_album_image(album_id)['user_static_file_id'])
 
     return {'success': True, 'data': {'id': song_id}}
 
@@ -494,36 +445,18 @@ def add_single_song_route():
         if artist is None:
             return {'success': False, 'error': 'no artist with id ' + str(artist_id)}
 
-    audio_bitrate = request.args.get('bitrate')
-    if audio_bitrate is None:
-        return {'success': False, 'error': 'audio bitrate wasn\'t provided'}
-    try:
-        audio_bitrate = int(audio_bitrate)
-    except ValueError as e:
-        return {'success': False, 'error': 'audio bitrate should be an integer'}
+    audio_file_id = db.add_file(song_audio_file)
+    image_file_id = db.add_file(song_image_file)
+    format_data = get_audio_stream_format_data(audio_file_id)
 
-    audio_duration = request.args.get('duration')
-    if audio_duration is None:
-        return {'success': False, 'error': 'the audio duration wasnt provided'}
-    try:
-        audio_duration = int(audio_duration)
-    except ValueError as e:
-        return {'success': False, 'error': 'duration should be an integer'}
+    audio_duration = format_data['duration']
+    audio_bitrate = format_data['bitrate']
+    audio_codec = format_data['format_name']
 
-    song_id = db.add_song(user['id'], song_name)
-    image_file_id = db.add_user_static_file(
-            user['id'],
-            song_image_file,
-            None,
-            None)
-    audio_file_id = db.add_user_static_file(
-            user['id'],
-            song_audio_file,
-            None,
-            None)
-    db.add_song_audio(song_id, audio_file_id, audio_duration, audio_bitrate)
-    db.add_song_image(song_id, image_file_id)
-    single_song_id = db.add_single_song(song_id, year)
+    song_id = db.add_song(user['id'], song_name, audio_file_id, audio_duration,
+                          audio_bitrate, audio_codec)
+
+    single_song_id = db.add_single_song(user['id'], song_id, image_file_id, year)
     for artist_id in artist_ids:
         db.add_song_artist(song_id, artist_id)
 

@@ -1,11 +1,11 @@
-import os
-
 from flask import Flask, request, g, render_template
+import os
 import json
 import datetime
 
 from . import db
 from . import auth
+from website.utils import current_time
 
 DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S:%f"
 
@@ -14,9 +14,7 @@ def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
         SECRET_KEY='dev',
-        DATABASE=os.path.join(app.instance_path, 'website.sqlite'),
-        SPOTIFY_DATABASE=os.path.join(app.instance_path, 'spotify_data.sqlite'),
-        MUSIC_DATABASE=os.path.join(app.instance_path, 'music.sqlite'),
+        DATABASE=os.path.join(app.instance_path, 'data.sqlite'),
     )
 
     if test_config is None:
@@ -54,7 +52,6 @@ def create_app(test_config=None):
         access_route = json.dumps(request.access_route, indent=2)
         referrer = request.referrer
         url = request.url
-        request_date = datetime.datetime.now().strftime(DATETIME_FORMAT)
         user_id = None
         if g.user:
             user_id = g.user['id']
@@ -62,12 +59,12 @@ def create_app(test_config=None):
         sql = \
         """
         INSERT INTO requests
-        (ip, referrer, request_date, request_data, form,
+        (ip, referrer, time_added, request_data, form,
         url, access_route, headers, user_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
         """
 
-        values = (ip, referrer, request_date, data, form, url, access_route, headers, user_id)
+        values = (ip, referrer, current_time(), data, form, url, access_route, headers, user_id)
         db.get_db().execute(sql, values)
         db.get_db().commit()
 
@@ -86,13 +83,8 @@ def create_app(test_config=None):
     from . import music
     app.register_blueprint(music.bp)
 
-    from . import blog
-
-    app.register_blueprint(blog.bp)
-
-    @app.route('/why_ugly')
-    def why_ugly():
-        return render_template('why_ugly.html')
+    from . import media
+    app.register_blueprint(media.bp)
 
     @app.after_request
     def add_header(r):

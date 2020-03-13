@@ -6,3 +6,4 @@
 3. I HAVE TO PREVENT DUPLICATES FROM ENTERING THE DAMN DATABASE !!!!
 4. empty artist, song, album names should be rejected
 5. allow_anonymous should be set accordingly in music.py
+6. any user can add any image or video to their collage and they'd get away with it lol

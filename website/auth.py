@@ -5,6 +5,7 @@ from flask import (
 )
 
 from website.db import get_db
+from website.utils import current_time
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
@@ -51,8 +52,8 @@ def register():
 
             if error is None:
                 db.execute(
-                    'INSERT INTO users (username, password, email) VALUES (?, ?, ?)',
-                    (username, password, email)
+                    'INSERT INTO users (username, password, email, time_added) VALUES (?, ?, ?, ?)',
+                    (username, password, email, current_time())
                 )
                 db.commit()
                 return redirect(url_for('auth.login'))
@@ -94,7 +95,7 @@ def login():
             if error is None:
                 session.clear()
                 session['user_id'] = user['id']
-                return redirect(url_for('blog.index'))
+                return redirect(url_for('home.index'))
 
         flash(error)
 
@@ -123,4 +124,4 @@ def login_required(view):
 @bp.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('blog.index'))
+    return redirect(url_for('home.index'))
