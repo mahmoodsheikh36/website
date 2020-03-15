@@ -174,11 +174,11 @@ def metadata_route():
     db_playlist_song_removals = db.get_playlist_song_removals(user['id'], after_time)
     metadata['playlist_song_removals'] = db_playlist_song_removals
 
-    if after_time is not None:
-        metadata['deleted_albums'] = db.get_user_deleted_albums(user['id'], after_time)
-
-    if after_time is not None:
-        metadata['deleted_singles'] = db.get_user_deleted_singles(user['id'], after_time)
+    #if after_time is not None:
+        #metadata['deleted_albums'] = db.get_user_deleted_albums(user['id'], after_time)
+#
+    #if after_time is not None:
+        #metadata['deleted_singles'] = db.get_user_deleted_singles(user['id'], after_time)
 
     return metadata
 
@@ -382,10 +382,10 @@ def add_song_to_album_route():
     format_data = get_audio_stream_format_data(audio_file_id)
 
     audio_duration = format_data['duration']
-    audio_bitrate = format_data['bitrate']
+    audio_bitrate = format_data['bit_rate']
     audio_codec = format_data['format_name']
 
-    song_id = db.add_song(user['id'], song_name, audio_file_id, audio_duration,
+    song_id = db.add_song(song_name, audio_file_id, audio_duration,
                           audio_bitrate, audio_codec)
 
     for artist_id in artist_ids:
@@ -450,10 +450,10 @@ def add_single_song_route():
     format_data = get_audio_stream_format_data(audio_file_id)
 
     audio_duration = format_data['duration']
-    audio_bitrate = format_data['bitrate']
+    audio_bitrate = format_data['bit_rate']
     audio_codec = format_data['format_name']
 
-    song_id = db.add_song(user['id'], song_name, audio_file_id, audio_duration,
+    song_id = db.add_song(song_name, audio_file_id, audio_duration,
                           audio_bitrate, audio_codec)
 
     single_song_id = db.add_single_song(user['id'], song_id, image_file_id, year)

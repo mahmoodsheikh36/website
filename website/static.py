@@ -26,9 +26,9 @@ def static_file(file_id):
     if error_message:
         return error_message
 
-    static_file = db.get_user_static_file(file_id)
-    if static_file['owner_id'] == user['id']:
-        return send_from_directory(
-                db.get_user_static_files_dir(),
-                static_file['file_name'])
-    return 'you don\'t own this file'
+    db_file = db.get_file(file_id)
+    #if db_file['owner_id'] == user['id']:
+    return send_from_directory(
+            db.get_files_dir(),
+            db_file['name'])
+    #return 'you don\'t own this file'

@@ -74,13 +74,13 @@ def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
 
-def add_song(owner_id, name, audio_file_id, duration, bitrate, codec):
+def add_song(name, audio_file_id, duration, bitrate, codec):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-        'INSERT INTO songs (owner_id, name, audio_file_id, duration, bitrate, codec, time_added)\
-         VALUES (?, ?, ?, ?, ?, ?, ?)',
-        (owner_id, name, audio_file_id, duration, bitrate, codec, current_time()))
+        'INSERT INTO songs (name, audio_file_id, duration, bitrate, codec, time_added)\
+         VALUES (?, ?, ?, ?, ?, ?)',
+        (name, audio_file_id, duration, bitrate, codec, current_time()))
     db.commit()
     return db_cursor.lastrowid
 
@@ -136,12 +136,13 @@ def get_user_songs(owner_id, after_time=None):
     db_cursor = db.cursor()
     if after_time is None:
         songs = db_cursor.execute(
-            'SELECT * FROM songs WHERE owner_id = ?', (owner_id,)
+            'SELECT * FROM songs WHERE id IN (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id IN (SELECT song_id FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?))',
+            (owner_id, owner_id)
         ).fetchall()
     else:
         songs = db_cursor.execute(
-            'SELECT * FROM songs WHERE owner_id = ? AND time_added > ?',
-            (owner_id, after_time)
+            'SELECT * FROM songs WHERE id IN (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id IN (SELECT song_id FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?)) AND time_added > ?',
+            (owner_id, owner_id, after_time)
         ).fetchall()
     return songs
 
@@ -260,13 +261,13 @@ def get_user_artists(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         artists = db.execute(
-                'SELECT * FROM artists WHERE artists.id = (SELECT artist_id FROM song_artists WHERE song_artists.song_id = (SELECT song_id FROM single_songs WHERE owner_id = ?)) OR artists.id = (SELECT artist_id FROM album_artists WHERE album_artists.album_id = (SELECT id FROM albums WHERE owner_id = ?)) OR artists.id = (SELECT artist_id FROM song_artists WHERE song_id = (SELECT id FROM songs WHERE id = (SELECT song_id FROM album_songs)))',
+                'SELECT * FROM artists WHERE id IN (SELECT artist_id FROM song_artists WHERE song_artists.song_id IN (SELECT song_id FROM single_songs WHERE owner_id = ?)) OR artists.id IN (SELECT artist_id FROM album_artists WHERE album_artists.album_id IN (SELECT id FROM albums WHERE owner_id = ?)) OR artists.id IN (SELECT artist_id FROM song_artists WHERE song_id IN (SELECT id FROM songs WHERE id IN (SELECT song_id FROM album_songs)))',
                 (user_id, user_id)
         ).fetchall()
     else:
         artists = db.execute(
-                'SELECT * FROM artists WHERE artists.id = (SELECT artist_id FROM song_artists WHERE song_artists.song_id = (SELECT song_id FROM single_songs WHERE owner_id = ?)) OR artists.id = (SELECT artist_id FROM album_artists WHERE album_artists.album_id = (SELECT id FROM albums WHERE owner_id = ?)) OR artists.id = (SELECT artist_id FROM song_artists WHERE song_id = (SELECT id FROM songs WHERE id = (SELECT song_id FROM album_songs))) AND time_added > ?',
-                (user_id, user_id, time_added)
+                'SELECT * FROM artists WHERE (id IN (SELECT artist_id FROM song_artists WHERE song_artists.song_id IN (SELECT song_id FROM single_songs WHERE owner_id = ?)) OR id IN (SELECT artist_id FROM album_artists WHERE album_artists.album_id IN (SELECT id FROM albums WHERE owner_id = ?)) OR artists.id IN (SELECT artist_id FROM song_artists WHERE song_id IN (SELECT id FROM songs WHERE id IN (SELECT song_id FROM album_songs)))) AND time_added > ?',
+                (user_id, user_id, after_time)
         ).fetchall()
     return artists
 
@@ -274,12 +275,12 @@ def get_user_song_artists(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         song_artists = db.execute(
-                'SELECT * FROM song_artists WHERE song_artists.song_id = (SELECT id FROM songs WHERE id = (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id = (SELECT song_id FROM album_songs WHERE album_id = (SELECT id FROM albums WHERE owner_id = ?)))',
+                'SELECT * FROM song_artists WHERE song_id IN (SELECT id FROM songs WHERE id IN (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id IN (SELECT song_id FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?)))',
                 (user_id, user_id)
         ).fetchall()
     else:
         song_artists = db.execute(
-                'SELECT * FROM song_artists WHERE song_artists.song_id = (SELECT id FROM songs WHERE id = (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id = (SELECT song_id FROM album_songs WHERE album_id = (SELECT id FROM albums WHERE owner_id = ?))) AND time_added > ?',
+                'SELECT * FROM song_artists WHERE song_id IN (SELECT id FROM songs WHERE id IN (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id IN (SELECT song_id FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?))) AND time_added > ?',
                 (user_id, user_id, after_time)
         ).fetchall()
     return song_artists
@@ -301,12 +302,12 @@ def get_user_album_songs(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         return db.execute(
-                'SELECT album_songs.* FROM album_songs JOIN songs ON songs.id = album_songs.song_id AND songs.owner_id = ?',
+                'SELECT * FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?)',
                 (user_id,)
         ).fetchall()
     else:
         return db.execute(
-                'SELECT album_songs.* FROM album_songs JOIN songs ON songs.id = album_songs.song_id AND songs.owner_id = ? WHERE album_songs.time_added > ?',
+                'SELECT * FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?) AND time_added > ?',
                 (user_id, after_time)
         ).fetchall()
 
@@ -405,13 +406,13 @@ def get_user_liked_songs(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         return db.execute(
-                'SELECT liked_songs.* FROM liked_songs JOIN songs ON songs.id = liked_songs.song_id AND songs.owner_id = ?',
-                (user_id,)
+                'SELECT * FROM liked_songs WHERE song_id IN (SELECT song_id FROM albums WHERE owner_id = ?) OR song_id IN (SELECT song_id FROM single_songs WHERE owner_id = ?)',
+                (user_id, user_id,)
         ).fetchall()
     else:
         return db.execute(
-                'SELECT liked_songs.* FROM liked_songs JOIN songs ON songs.id = liked_songs.song_id AND songs.owner_id = ? AND liked_songs.time_added > ?',
-                (user_id, after_time)
+                'SELECT * FROM liked_songs WHERE (song_id IN (SELECT song_id FROM albums WHERE owner_id = ?) OR song_id IN (SELECT song_id FROM single_songs WHERE owner_id = ?)) AND time_added > ?',
+                (user_id, user_id, after_time,)
         ).fetchall()
 
 def get_user_liked_song_removals(user_id, after_time=None):
@@ -572,12 +573,12 @@ def get_user_deleted_albums(user_id, after_time):
     db_cursor = db.cursor()
     if after_time is None:
         songs = db_cursor.execute(
-            'SELECT album_id,time_added FROM deleted_albums WHERE owner_id = ?',
+            'SELECT * FROM deleted_albums WHERE owner_id = ?',
             (user_id,)
         ).fetchall()
     else:
         songs = db_cursor.execute(
-            'SELECT album_id,time_added FROM deleted_albums WHERE owner_id = ? AND time_added > ?',
+            'SELECT * FROM deleted_albums WHERE owner_id = ? AND time_added > ?',
             (user_id, after_time)
         ).fetchall()
     return songs
@@ -697,12 +698,12 @@ def get_user_album_artists(user_id, after_time=None):
     db = get_db()
     if after_time is None:
         song_artists = db.execute(
-                'SELECT * FROM album_artists WHERE album_id = (SELECT id FROM albums WHERE owner_id = ?)',
+                'SELECT * FROM album_artists WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?)',
                 (user_id,)
         ).fetchall()
     else:
         song_artists = db.execute(
-                'SELECT * FROM album_artists WHERE album_id = (SELECT id FROM albums WHERE owner_id = ?) AND time_added > ?',
+                'SELECT * FROM album_artists WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?) AND time_added > ?',
                 (user_id, after_time)
         ).fetchall()
     return song_artists

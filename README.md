@@ -7,3 +7,4 @@
 4. empty artist, song, album names should be rejected
 5. allow_anonymous should be set accordingly in music.py
 6. any user can add any image or video to their collage and they'd get away with it lol
+7. currently anyone can request any file from the server, this is the worst yet.. lol
