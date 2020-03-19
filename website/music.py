@@ -41,28 +41,14 @@ def check_auth(request_form, request_method=None, allow_anonymous=False):
     return user, error_message
 
 def delete_song(song_id):
+    song = db.get_song(song_id)
     db.delete_song(song_id)
-    if db.is_song_liked(song_id):
-        db.add_liked_song_removal(song_id)
-    for song_image in db.get_song_images(song_id):
-        db.delete_user_file(song_image['user_static_file_id'])
-        db.delete_song_image(song_image['id'])
-    for song_audio_row in db.get_song_audio(song_id):
-        db.delete_user_file(song_audio_row['user_static_file_id'])
-        db.delete_song_audio(song_audio_row['id'])
-    for song_artist_row in db.get_song_artists(song_id):
-        db.delete_song_artist_by_row_id(song_artist_row['id'])
-    for song_lyrics_row in db.get_song_lyrics(song_id):
-        db.delete_song_lyrics(song_lyrics_row['id'])
-
-def delete_single(user_id, single_id):
-    db_single = db.get_single(single_id)
-    song_id = db_single['song_id']
-    delete_song(song_id)
-    db.delete_single(single_id)
-    db.add_deleted_single(user_id, single_id)
+    db.delete_file(song['audio_file_id'])
+    db.delete_song_artists(song_id)
 
 def delete_album(user_id, album_id):
+    album = db.get_album(album_id)
+
     album_songs = db.get_album_songs(album_id)
     for album_song in album_songs:
         db.delete_album_song(album_song['id'])
@@ -70,46 +56,8 @@ def delete_album(user_id, album_id):
         delete_song(song_id)
 
     db.delete_album(album_id)
-    album_image = db.get_album_image(album_id)
-    db.delete_album_image(album_image['id'])
-    db.delete_user_file(album_image['user_static_file_id'])
+    db.delete_file(album['image_file_id'])
     db.add_deleted_album(user_id, album_id)
-
-@bp.route('/delete_album', methods=('POST',))
-def delete_album_route():
-    user, error_message = check_auth(request.form,
-                                     request_method=request.method,
-                                     allow_anonymous=False)
-    if error_message:
-        return {'success': False, 'error': error_message}
-
-    album_id = request.args.get('id')
-    if album_id is None:
-        return {'success': False, 'error': 'album_id wasnt provided'}
-
-    if db.get_album(album_id) is None:
-        return {'success': False, 'error': 'no album with such id'}
-
-    delete_album(user['id'], album_id)
-    return {'success': True, 'data': {}}
-
-@bp.route('/delete_single', methods=('POST',))
-def delete_single_route():
-    user, error_message = check_auth(request.form,
-                                     request_method=request.method,
-                                     allow_anonymous=False)
-    if error_message:
-        return {'success': False, 'error': error_message}
-
-    single_id = request.args.get('id')
-    if single_id is None:
-        return {'success': False, 'error': 'single_id wasnt provided'}
-
-    if db.get_single(single_id) is None:
-        return {'success': False, 'error': 'no single with id: {}'.format(single_id)}
-
-    delete_single(user['id'], single_id)
-    return {'success': True, 'data': {}}
 
 @bp.route('/metadata', methods=('POST', 'GET'))
 def metadata_route():
@@ -174,43 +122,13 @@ def metadata_route():
     db_playlist_song_removals = db.get_playlist_song_removals(user['id'], after_time)
     metadata['playlist_song_removals'] = db_playlist_song_removals
 
-    #if after_time is not None:
-        #metadata['deleted_albums'] = db.get_user_deleted_albums(user['id'], after_time)
+    if after_time is not None:
+        metadata['deleted_albums'] = db.get_user_deleted_albums(user['id'], after_time)
 #
     #if after_time is not None:
         #metadata['deleted_singles'] = db.get_user_deleted_singles(user['id'], after_time)
 
     return metadata
-
-@bp.route('/add_playlist', methods=('POST',))
-def add_playlist_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=False)
-    if error:
-        return {'success': False, 'error': error}
-
-    playlist_name = request.args.get('name')
-    if playlist_name is None:
-        return {'success': False, 'error': 'playlist name wasnt provided'}
-
-    image_file = None
-    original_image_file_name = None
-    image_comment = None
-    if 'image' in request.files:
-        image_file = request.files['image']
-    else:
-        return { 'success': False, 'error': 'no image provided' }
-
-    image_file_id = db.add_user_static_file(
-            user['id'],
-            image_file,
-            None,
-            None)
-    playlist_id = db.add_playlist(user['id'], playlist_name)
-    db.add_playlist_image(playlist_id, image_file_id)
-
-    return {'success': True, 'data': {'id': playlist_id}}
 
 @bp.route('/add_artist', methods=('POST',))
 def add_artist():
@@ -276,49 +194,6 @@ def add_album_route():
         db.add_album_artist(album_id, artist_id)
 
     return {'success': True, 'data': {'album_id': album_id}}
-
-@bp.route('/add_existing_song_to_album', methods=('POST',))
-def add_existing_song_to_album_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=False)
-    if error:
-        return {'success': False, 'error': error}
-
-    album_id = request.args.get('album_id')
-    if album_id is None:
-        return {'success': False, 'error': 'no album_id provided'}
-    try:
-        album_id = int(album_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'album_id should be an integer'}
-
-    album = db.get_album(album_id)
-    if album is None:
-        return {'success': False, 'error': 'no album with id: ' + str(album_id)}
-
-    index_in_album = request.args.get('index_in_album')
-    if index_in_album is None:
-        return {'success': False, 'error': 'song index in album wasnt provided'}
-    try:
-        index_in_album = int(index_in_album)
-    except ValueError as e:
-        return {'success': False, 'error': 'index_in_album should be an integer'}
-
-    if db.get_album_song_by_index(album_id, index_in_album) is not None:
-        return {'success': False, 'error': 'a song with this index already exists in this album'}
-
-    song_id = request.args.get('song_id')
-    if song_id is None:
-        return {'success': False, 'error': 'song_id wasnt provided'}
-    try:
-        song_id = int(song_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'song_id should be an integer'}
-
-    db.add_album_song(song_id, album_id, index_in_album)
-
-    return {'success': True, 'data': {}}
 
 @bp.route('/add_song_to_album', methods=('POST',))
 def add_song_to_album_route():
@@ -500,194 +375,25 @@ def like_song_route():
     liked_songs_row_id = db.add_liked_song(song_id)
     return {'success': True, 'data': {'liked_songs_row_id': liked_songs_row_id}}
 
-@bp.route('/add_song_to_playlist', methods=('POST',))
-def add_song_to_playlist_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=False)
-    if error:
-        return {'success': False, 'error': error}
+@bp.route('/delete_album', methods=('POST',))
+def delete_album_route():
+    user, error_message = check_auth(request.form,
+                                     request_method=request.method,
+                                     allow_anonymous=False)
+    if error_message:
+        return {'success': False, 'error': error_message}
 
-    playlist_id = request.args.get('playlist_id')
-    if playlist_id is None:
-        return {'success': False, 'error': 'please provide the playlists id'}
-    song_id = request.args.get('song_id')
-    if song_id is None:
-        return {'success': False, 'error': 'please provide the songs id that u want add to the playlist'}
+    album_id = request.args.get('id')
+    if album_id is None:
+        return {'success': False, 'error': 'album_id wasnt provided'}
 
-    if db.get_playlist_song(playlist_id, song_id) is not None:
-        return {'success': False, 'error': 'this song already exists in this playlist'}
-
-    playlist_songs_row_id = db.add_playlist_song(playlist_id, song_id)
-    return {'success': True, 'data': {'playlist_songs_row_id': playlist_song_row_id}}
-
-@bp.route('/add_audio_to_song', methods=('POST',))
-def add_audio_to_song_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=False)
-    if error:
-        return {'success': False, 'error': error}
-
-    song_id = None
-    if 'song_id' in request.form:
-        song_id = request.form['song_id']
-    else:
-        return {'success': False, 'error': 'song_id wasnt provided'}
-    try:
-        song_id = int(song_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'song_id must be an integer'}
-
-    audio_file = None
-    if 'audio' in request.files:
-        audio_file = request.files['image']
-    else:
-        return {'success': False, 'error': 'no audio provided'}
-
-    audio_duration = None
-    if 'duration' in request.form:
-        audio_duration = request.form['duration']
-    else:
-        return {'success': False, 'error': 'audio duration wasnt providead'}
-    try:
-        audio_duration = int(audio_duration)
-    except ValueError as e:
-        return {'success': False, 'error': 'audio duration must be an integer'}
-
-    audio_bitrate = None
-    if 'bitrate' in request.form:
-        audio_bitrate = request.form['bitrate']
-    else:
-        return {'success': False, 'error': 'audio bitrate wasnt providead'}
-    try:
-        audio_bitrate = int(audio_bitrate)
-    except ValueError as e:
-        return {'success': False, 'error': 'audio bitrate must be an integer'}
-
-    audio_file_id = db.add_user_static_file(
-            user['id'],
-            audio_file,
-            None,
-            None)
-    db.add_song_audio(song_id, audio_file_id, audio_duration, audio_bitrate)
-
-    return {'success': True, 'data': {}}
-
-@bp.route('/edit_album_artist', methods=('POST',))
-def edit_album_artist_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=False)
-    if error:
-        return {'success': False, 'error': error}
-
-    album_id = None
-    if 'album_id' in request.form:
-        album_id = request.form['album_id']
-    else:
-        return {'success': False, 'error': 'no album_id provided'}
-    try:
-        album_id = int(album_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'album_id should be an integer'}
-
-    artist_id = None
-    if 'artist_id' in request.form:
-        artist_id = request.form['artist_id']
-    else:
-        return {'success': False, 'error': 'no artist_id provided'}
-    try:
-        artist_id = int(artist_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'artist_id should be an integer'}
-
-    album = db.get_album(album_id)
-    if album is None:
+    if db.get_album(album_id) is None:
         return {'success': False, 'error': 'no album with such id'}
 
-    aritst = db.get_artist(artist_id)
-    if artist is None:
-        return {'success': False, 'error': 'no artist with such id'}
-
-    old_artist_id = album['artist_id']
-    album_artist_edit_id = add_album_artist_edit(user['id'], album_id, old_artist_id, artist_id)
-    db.update_album_artist_id(album_id, artist_id)
-    return {'success': True, 'data': {'album_artist_edit_id': album_artist_edit_id}}
-
-@bp.route('/edit_song_artist', methods=('POST',))
-def edit_song_artist_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=False)
-    if error:
-        return {'success': False, 'error': error}
-
-    song_id = None
-    if 'song_id' in request.form:
-        song_id = request.form['song_id']
-    else:
-        return {'success': False, 'error': 'no song_id provided'}
-    try:
-        song_id = int(song_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'song_id should be an integer'}
-
-    new_artist_id = None
-    if 'new_artist_id' in request.form:
-        new_artist_id = request.form['new_artist_id']
-    else:
-        return {'success': False, 'error': 'no new_artist_id provided'}
-    try:
-        new_artist_id = int(new_artist_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'new_artist_id should be an integer'}
-
-    old_artist_id = None
-    if 'old_artist_id' in request.form:
-        old_artist_id = request.form['old_artist_id']
-    else:
-        return {'success': False, 'error': 'no old_artist_id provided'}
-    try:
-        old_artist_id = int(old_artist_id)
-    except ValueError as e:
-        return {'success': False, 'error': 'old_artist_id should be an integer'}
-
-    song = db.get_song(song_id)
-    if song is None:
-        return {'success': False, 'error': 'no song with such id'}
-    
-    old_artist = db.get_artist(old_artist_id)
-    if old_artist is None:
-        return {'success': False, 'error': 'no artist with such id {}'.format(old_artist_id)}
-
-    new_artist = db.get_artist(new_artist_id)
-    if new_artist is None:
-        return {'success': False, 'error': 'no artist with such id {}'.format(new_artist_id)}
-
-    db.add_song_artist_edit(user['id'], song_id, old_artist_id, new_artist_id)
-    db.delete_song_artist(song_id, new_artist_id)
-    db.add_song_artist(song_id, new_artist_id)
+    delete_album(user['id'], album_id)
     return {'success': True, 'data': {}}
 
 @bp.route('/artists', methods=('GET',))
-def get_artists_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=True)
-    if error:
-        return {'success': False, 'error': error}
-
-    db_artists = db.get_user_artists(user['id'])
-    return {'success': True, 'data': {'artists': db_artists}}
-
-@bp.route('/albums', methods=('GET',))
-def get_albums_route():
-    user, error = check_auth(request.form,
-                             request_method=request.method,
-                             allow_anonymous=True)
-    if error:
-        return {'success': False, 'error': error}
-
-    db_albums = db.get_user_albums(user['id'])
-    return {'success': True, 'data': {'albums': db_albums}}
+def artists_route():
+    artists = db.get_artists()
+    return {'success': True, 'data': {'artists': artists}}
