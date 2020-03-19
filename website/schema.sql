@@ -229,9 +229,11 @@ CREATE TABLE album_year_changes (
 
 CREATE TABLE deleted_albums (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
+  owner_id INTEGER NOT NULL,
   album_id INTEGER NOT NULL,
   time_added int,
-  FOREIGN KEY (album_id) REFERENCES albums (id)
+  FOREIGN KEY (album_id) REFERENCES albums (id),
+  FOREIGN KEY (owner_id) REFERENCES albums (id)
 );
 
 CREATE TABLE deleted_singles (
