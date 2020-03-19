@@ -141,7 +141,7 @@ def get_user_songs(owner_id, after_time=None):
         ).fetchall()
     else:
         songs = db_cursor.execute(
-            'SELECT * FROM songs WHERE id IN (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id IN (SELECT song_id FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?)) AND time_added > ?',
+            'SELECT * FROM songs WHERE (id IN (SELECT song_id FROM single_songs WHERE owner_id = ?) OR id IN (SELECT song_id FROM album_songs WHERE album_id IN (SELECT id FROM albums WHERE owner_id = ?))) AND time_added > ?',
             (owner_id, owner_id, after_time)
         ).fetchall()
     return songs
@@ -256,6 +256,10 @@ def get_artist(artist_id):
             (artist_id,)
     ).fetchone()
     return artist
+
+def get_artists():
+    db = get_db()
+    return get_db().execute('SELECT * FROM artists').fetchall()
 
 def get_user_artists(user_id, after_time=None):
     db = get_db()
@@ -506,19 +510,17 @@ def delete_album_image(album_image_id):
     )
     db.commit()
 
-def delete_user_file(user_file_id):
+def delete_file(file_id):
     db = get_db()
     db_cursor = db.cursor()
-    user_static_file = get_user_static_file(user_file_id)
-    if user_static_file is None:
-        return
-    file_name = user_static_file['file_name']
+    db_file = get_file(file_id)
+    file_name = db_file['name']
     file_path = os.path.join(get_files_dir(), file_name)
     if os.path.exists(file_path):
         os.remove(file_path)
     db_cursor.execute(
-        'DELETE FROM user_static_files WHERE id = ?',
-        (user_file_id,)
+        'DELETE FROM files WHERE id = ?',
+        (file_id,)
     )
     db.commit()
 
@@ -535,14 +537,6 @@ def delete_song(song_id):
     db.cursor().execute(
         'DELETE FROM songs WHERE id = ?',
         (song_id,)
-    )
-    db.commit()
-
-def delete_song_artist_by_row_id(song_artist_row_id):
-    db = get_db()
-    db.cursor().execute(
-        'DELETE FROM song_artists WHERE id = ?',
-        (song_artist_row_id,)
     )
     db.commit()
 
@@ -607,12 +601,12 @@ def update_album_artist_id(album_id, new_artist_id):
     )
     db.commit()
 
-def delete_song_artist(song_id, artist_id):
+def delete_song_artist(song_artist_id):
     db = get_db()
     db_cursor = db.cursor()
     songs = db_cursor.execute(
-        'DELETE FROM song_artists WHERE song_id = ? AND artist_id = ?',
-        (song_id, artist_id,)
+        'DELETE FROM song_artists WHERE id = ?',
+        (song_artist_id,)
     )
     db.commit()
 
@@ -707,3 +701,12 @@ def get_user_album_artists(user_id, after_time=None):
                 (user_id, after_time)
         ).fetchall()
     return song_artists
+
+def delete_song_artists(song_id):
+    db = get_db()
+    db_cursor = db.cursor()
+    songs = db_cursor.execute(
+        'DELETE FROM song_artists WHERE song_id = ?',
+        (song_id,)
+    )
+    db.commit()
