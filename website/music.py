@@ -372,6 +372,9 @@ def like_song_route():
     except ValueError as e:
         return {'success': False, 'error': 'song_id should be an integer'}
 
+    if db.get_liked_song(song_id) is not None:
+        return {'success': False, 'error': 'song already liked'}
+
     liked_songs_row_id = db.add_liked_song(song_id)
     return {'success': True, 'data': {'liked_songs_row_id': liked_songs_row_id}}
 
