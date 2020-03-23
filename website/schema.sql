@@ -28,9 +28,11 @@ CREATE TABLE songs (
   time_added int,
   name TEXT NOT NULL,
   audio_file_id INTEGER NOT NULL,
-  duration REAL,
-  bitrate int,
+  duration REAL NOT NULL,
+  bitrate INTEGER NOT NULL,
   codec TEXT NOT NULL,
+  sample_rate INTEGER NOT NULL,
+  channels INTEGER NOT NULL,
   FOREIGN KEY (audio_file_id) REFERENCES files (id)
 );
 
