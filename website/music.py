@@ -7,7 +7,7 @@ from flask import (
 from website import auth
 from website import db
 from website.utils import current_time
-from website.ffmpeg import get_audio_stream_format_data
+from website.ffmpeg import get_audio_stream_metadata
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
@@ -39,6 +39,16 @@ def check_auth(request_form, request_method=None, allow_anonymous=False):
             error_message = 'mahmooz (admin) user hasn\'t been created yet'
 
     return user, error_message
+
+def add_song(name, audio_file_id):
+    stream_metadata = get_audio_stream_metadata(db.get_file_path(audio_file_id))
+    audio_duration = stream_metadata['format']['duration']
+    audio_bitrate = stream_metadata['format']['bit_rate']
+    audio_codec = stream_metadata['format']['format_name']
+    audio_sample_rate = stream_metadata['streams'][0]['sample_rate']
+    audio_channels = stream_metadata['streams'][0]['channels']
+    return db.add_song(name, audio_file_id, audio_duration, audio_bitrate,
+                       audio_codec, audio_sample_rate, audio_channels)
 
 def delete_song(song_id):
     song = db.get_song(song_id)
@@ -254,14 +264,7 @@ def add_song_to_album_route():
             return {'success': False, 'error': 'no artist with id ' + str(artist_id)}
 
     audio_file_id = db.add_file(song_audio_file)
-    format_data = get_audio_stream_format_data(audio_file_id)
-
-    audio_duration = format_data['duration']
-    audio_bitrate = format_data['bit_rate']
-    audio_codec = format_data['format_name']
-
-    song_id = db.add_song(song_name, audio_file_id, audio_duration,
-                          audio_bitrate, audio_codec)
+    song_id = add_song(song_name, audio_file_id)
 
     for artist_id in artist_ids:
         db.add_song_artist(song_id, artist_id)
@@ -322,14 +325,8 @@ def add_single_song_route():
 
     audio_file_id = db.add_file(song_audio_file)
     image_file_id = db.add_file(song_image_file)
-    format_data = get_audio_stream_format_data(audio_file_id)
 
-    audio_duration = format_data['duration']
-    audio_bitrate = format_data['bit_rate']
-    audio_codec = format_data['format_name']
-
-    song_id = db.add_song(song_name, audio_file_id, audio_duration,
-                          audio_bitrate, audio_codec)
+    song_id = add_song(song_name, audio_file_id)
 
     single_song_id = db.add_single_song(user['id'], song_id, image_file_id, year)
     for artist_id in artist_ids:
