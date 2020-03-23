@@ -74,13 +74,16 @@ def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
 
-def add_song(name, audio_file_id, duration, bitrate, codec):
+def add_song(name, audio_file_id, duration, bitrate, codec, sample_rate,
+             channels):
     db = get_db()
     db_cursor = db.cursor()
     db_cursor.execute(
-        'INSERT INTO songs (name, audio_file_id, duration, bitrate, codec, time_added)\
-         VALUES (?, ?, ?, ?, ?, ?)',
-        (name, audio_file_id, duration, bitrate, codec, current_time()))
+        'INSERT INTO songs (name, audio_file_id, duration, bitrate, codec,\
+                            time_added, sample_rate, channels)\
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        (name, audio_file_id, duration, bitrate, codec, current_time(),
+         sample_rate, channels))
     db.commit()
     return db_cursor.lastrowid
 
