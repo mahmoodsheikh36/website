@@ -13,7 +13,8 @@ div.song {
 }
 
 div.song img {
-    width: 50px;
+    width: 65px;
+    height: 65px;
 }
 
 div.song_info {
