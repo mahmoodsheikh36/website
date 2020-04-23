@@ -1,13 +1,8 @@
-from flask import Flask, request, g, render_template
+from flask import Flask, request
 import os
 import json
-import datetime
 
 from . import db
-from . import auth
-from website.utils import current_time
-
-DATETIME_FORMAT = "%d/%m/%Y %H:%M:%S:%f"
 
 def create_app(test_config=None):
     # create and configure the app
@@ -37,8 +32,6 @@ def create_app(test_config=None):
 
     @app.before_request
     def log_request():
-        auth.load_user_if_logged_in()
-
         ip = None
 
         if request.environ.get('HTTP_X_FORWARDED_FOR') is None:
@@ -52,23 +45,8 @@ def create_app(test_config=None):
         access_route = json.dumps(request.access_route, indent=2)
         referrer = request.referrer
         url = request.url
-        user_id = None
-        if g.user:
-            user_id = g.user['id']
-        
-        sql = \
-        """
-        INSERT INTO requests
-        (ip, referrer, time_added, request_data, form,
-        url, access_route, headers, user_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
-        """
-
-        values = (ip, referrer, current_time(), data, form, url, access_route, headers, user_id)
-        db.get_db().execute(sql, values)
-        db.get_db().commit()
-
-        print('request from: {}:{}'.format(ip, datetime.datetime.now()))
+        db.add_request(ip, referrer, data, form, url, access_route, headers)
+        print('request from: {}'.format(ip))
 
     db.init_app(app)
 
@@ -78,20 +56,11 @@ def create_app(test_config=None):
     from . import static
     app.register_blueprint(static.bp)
 
-    app.register_blueprint(auth.bp)
-
     from . import music
     app.register_blueprint(music.bp)
 
-    from . import media
-    app.register_blueprint(media.bp)
-
     @app.after_request
     def add_header(r):
-        """
-        Add headers to both force latest IE rendering engine or Chrome Frame,
-        and also to cache the rendered page for 10 minutes.
-        """
         r.headers["Pragma"] = "no-cache"
         r.headers["Expires"] = "0"
         r.headers['Cache-Control'] = 'public, max-age=0'

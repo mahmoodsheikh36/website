@@ -1,51 +1,41 @@
-html {
-    height: auto !important;
-}
-
-.tracks_container {
-    margin: 1px;
+div.songs_table {
     display: flex;
     flex-flow: column nowrap;
     align-items: center;
 }
 
-div.track img {
+div.song {
+    margin-top: 5px;
+    padding: 5px;
+    background-color: #18191a;
+    display: flex;
+    flex-flow: row nowrap;
+}
+
+div.song img {
     width: 50px;
-    height: 50px;
 }
 
-.track {
-    background-color: #b9a;
-    margin: 3px;
-    display: flex;
-    flex-flow: row nowrap;
-    align-items: center;
-    padding-left: 3px;
-    padding-right: 4px;
-    padding-top: 2px;
-    padding-bottom: 2px;
-}
-
-div.info_container {
-    display: flex;
-    flex-flow: row nowrap;
+div.song_info {
     margin-left: 5px;
-    justify-content: space-between;
-    align-items: center;
-}
-
-div.info {
     display: flex;
     flex-flow: column nowrap;
+    justify-content: space-evenly;
+}
+div.song_info a {
+    color: rgb(242, 93, 93);
+}
+
+div.listen_time {
+    margin-left: 20px;
+    display: flex;
+    align-items: center;
 }
 
 a.listen_time {
-    margin-left: 20px;
+    align-self: center;
 }
 
-div.intro {
-    text-align: center;
-}
 div.intro p {
-    max-width: 400px;
+    max-width: 500px;
 }

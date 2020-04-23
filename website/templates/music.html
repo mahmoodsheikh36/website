@@ -2,27 +2,30 @@
 
 {% block head %}
   <title>Mahmood's music</title>
-  <link rel="stylesheet" href="/css/music.css">
+  <link rel="stylesheet" href="/static/css/music.css">
 {% endblock %}
 
 {% block content %}
-  <div class="tracks_container">
+  <div class="songs_table">
     <div class="intro">
-      <p>
-        the left side shows the song, the number on the right side shows how many seconds i spent listening to it, i started monitoring my <span style="color:#090;">Spotify</span> activity on 1/10/2019
+      <p align=center>
+        this is a <span style="color: rgb(242, 93, 93)">live</span>
+        representation of my activity on
+        <span style="color: green">Spotify</span>,
+        shown here are the 100 songs i listened to the most,
+        clicking on a song shows a plot of the listening data
       </p>
     </div>
-    {% for track in tracks %}
-    <div class="track">
-      <img alt="img" src="{{ track['image_url'] }}" style="width:50px;height:50px;"/>
-      <div class="info_container">
-        <div class="info">
-          <a>{{ track['name'] }}</a>
-          <a>{{ track['artist'] }}</a>
-        </div>
-        <a class="listen_time">{{ track['listen_time'] }}</a>
+    <div class="song">
+      <!--inline style to force the size even before the image is loaded--!>
+      <img style="width:50px;height:50px;" alt="img" src="https://fordhamram.com/wp-content/uploads/2020/04/apple-.jpeg"/>
+      <div class="song_info">
+        <span style="color: rgb(242, 93, 93)">song_name</span>
+        <a>artist_name</a>
+      </div>
+      <div class="listen_time">
+        <a class="listen_time">listen_time</a>
       </div>
     </div>
-    {% endfor %}
   </div>
 {% endblock %}
