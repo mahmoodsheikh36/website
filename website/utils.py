@@ -1,6 +1,5 @@
 import uuid
 import time
-import magic
 
 current_time = lambda: int(round(time.time() * 1000))
 
