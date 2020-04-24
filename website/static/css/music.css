@@ -13,8 +13,8 @@ div.song {
 }
 
 div.song img {
-    width: 65px;
-    height: 65px;
+    width: 60px;
+    height: 60px;
 }
 
 div.song_info {
@@ -23,20 +23,24 @@ div.song_info {
     flex-flow: column nowrap;
     justify-content: space-evenly;
 }
-div.song_info a {
-    color: rgb(242, 93, 93);
-}
 
-div.listen_time {
+div.time_listened {
     margin-left: 20px;
     display: flex;
-    align-items: center;
+    justify-content: space-evenly;
+    flex-flow: column nowrap;
 }
 
-a.listen_time {
+a.time_listened {
     align-self: center;
 }
 
 div.intro p {
     max-width: 500px;
+}
+
+canvas.listening_data_plot {
+    width: 400px !important;
+    height: 100px !important;
+    background-color: #18191a;
 }

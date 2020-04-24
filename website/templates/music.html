@@ -1,31 +1,63 @@
 {% extends 'base.html' %}
 
 {% block head %}
-  <title>Mahmood's music</title>
-  <link rel="stylesheet" href="/static/css/music.css">
+<title>Mahmood's music</title>
+<link rel="stylesheet" href="/static/css/music.css">
 {% endblock %}
 
 {% block content %}
-  <div class="songs_table">
+<canvas id="chart" class="listening_data_plot"></canvas>
+<script>
+ var ctx = document.getElementById('chart').getContext('2d');
+ function generate_data() {
+     data = []
+     for (let i = 0; i < 1000; ++i) {
+         data.push({x: i, y: i})
+     }
+     return data
+ }
+ var canvas = document.getElementById("chart");
+ var ctx = canvas.getContext("2d");
+ ctx.moveTo(0,0);
+ ctx.lineTo(canvas.width - 100, canvas.height - 100);
+ ctx.strokeStyle = '#ff0000';
+ ctx.stroke();
+</script>
+
+<div class="songs_table">
     <div class="intro">
-      <p align=center>
-        this is a <span style="color: rgb(242, 93, 93)">live</span>
-        representation of my activity on
-        <span style="color: green">Spotify</span>,
-        shown here are the 100 songs i listened to the most,
-        clicking on a song shows a plot of the listening data
-      </p>
+        <p align=center>
+            this is a <span style="color: rgb(242, 93, 93)">live</span>
+            representation of my activity on
+            <span style="color: green">Spotify</span>,
+            shown here are the 100 songs i listened to the most,
+            clicking on a song shows/hides a plot of the listening data
+        </p>
     </div>
-    <div class="song">
-      <!--inline style to force the size even before the image is loaded--!>
-      <img style="width:65px;height:65px;" alt="img" src="https://fordhamram.com/wp-content/uploads/2020/04/apple-.jpeg"/>
-      <div class="song_info">
-        <span style="color: rgb(242, 93, 93)">song_name</span>
-        <a>artist_name</a>
-      </div>
-      <div class="listen_time">
-        <a class="listen_time">listen_time</a>
-      </div>
+    {% for song in songs %}
+    <div class="song" data-trend='{{ song.trend|tojson }}' onclick="alert('hi')">
+        <!-- inline style to force the size even before the image is loaded -->
+        <img style="width:60px;height:60px;" alt="img" src="{{ song.album.image_url }}"/>
+        <div class="song_info">
+            <span style="color: rgb(242, 93, 93)">{{ song.name }}</span>
+            <a>{{ song.artists[0].name }}</a>
+        </div>
+        <div class="time_listened">
+            {% if song.hrs_listened == 1 %}
+            <a class="time_listened">{{ song.hrs_listened }} hr</a>
+            {% endif %}
+            {% if song.hrs_listened > 1 %}
+            <a class="time_listened">{{ song.hrs_listened }} hrs</a>
+            {% endif %}
+            {% if song.mins_listened == 1 %}
+            <a class="time_listened">{{ song.mins_listened }} min</a>
+            {% endif %}
+            {% if song.mins_listened > 1 %}
+            <a class="time_listened">{{ song.mins_listened }} mins</a>
+            {% endif %}
+            <a class="time_listened">{{ song.secs_listened }} secs</a>
+        </div>
     </div>
-  </div>
+    {% endfor %}
+</div>
 {% endblock %}
