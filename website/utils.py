@@ -18,3 +18,22 @@ def get_largest_elements(list_to_sort, limit, compare):
         final_list.append(biggest)
         mylist.remove(biggest)
     return final_list
+
+def ms_to_time_str(ms):
+    secs = (ms // 1000) % 60
+    mins = (ms // 60000) % 60
+    hrs = (ms // 3600000)
+    str = ''
+    if hrs == 1:
+        str += '1 hr, '
+    elif hrs > 1:
+        str += '{} hrs, '.format(hrs)
+    if mins == 1:
+        str += '{} min, '
+    elif mins > 1:
+        str += '{} mins, '.format(mins)
+    if secs == 1:
+        str += '1 sec'
+    elif secs > 1:
+        str += '{} secs'.format(secs)
+    return str

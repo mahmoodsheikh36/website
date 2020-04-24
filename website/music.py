@@ -4,7 +4,7 @@ from flask import (
 )
 
 from website import db
-from website.utils import get_largest_elements, current_time
+from website.utils import get_largest_elements, current_time, ms_to_time_str
 
 from commandify.db import DBProvider
 cmdify_db_provider = DBProvider()
@@ -20,7 +20,7 @@ def music_index():
         track.ms_listened_cached = ms_listened
         track.secs_listened = (ms_listened // 1000) % 60
         track.mins_listened = (ms_listened // 60000) % 60
-        track.hrs_listened = (ms_listened // 360000)
+        track.hrs_listened = (ms_listened // 3600000)
 
     for track in tracks:
         first_listen_time = plays[0].time_started
@@ -44,6 +44,19 @@ def music_index():
             return True
         return False
     
+    last_play = plays[-1]
+    last_play_ms = current_time() - last_play.time_ended
+    print(last_play.time_ended)
+    last_play_str = ms_to_time_str(last_play_ms)
+    if last_play_ms < 5000:
+        last_play_str = 'right now!'
+    print(last_play_str)
+
+    last_track = last_play.track
+    last_song_title = '{} - {}'.format(last_track.name, last_track.artists[0].name)
+
     return render_template('music.html',
                            songs=get_largest_elements(tracks, 100, compare),
-                           listening_data=listening_data)
+                           listening_data=listening_data,
+                           last_song_title=last_song_title,
+                           last_play_str=last_play_str)

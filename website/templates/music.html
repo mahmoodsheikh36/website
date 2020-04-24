@@ -18,6 +18,14 @@
     </div>
     <canvas id="listening_data_plot" class="listening_data_plot"
             data-listening_data='{{ listening_data|tojson }}'></canvas>
+    <p align=center class="last_played">
+        last played:
+        <span style="color: rgb(242, 93, 93)">{{ last_song_title }}</span>,
+        {{ last_play_str }}
+        {% if last_play_str != 'right now' %}
+        ago
+        {% endif %}
+    </p>
     {% for song in songs %}
     <div class="song">
         <!-- inline style to force the size even before the image is loaded -->

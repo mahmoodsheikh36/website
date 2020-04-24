@@ -28,7 +28,7 @@ div.song_info {
     min-width: 0;
     flex: 1;
 }
-span {
+div.song_info span {
     overflow-wrap: break-word;
 }
 
@@ -54,4 +54,8 @@ canvas.listening_data_plot {
     background-color: #18191a;
     padding: 10px;
     margin-bottom: 10px;
+}
+
+p.last_played {
+    width: 100%;
 }
