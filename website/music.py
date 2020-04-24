@@ -53,7 +53,7 @@ def music_index():
     print(last_play.time_ended)
     last_play_str = ms_to_time_str(last_play_ms)
     if last_play_ms < 5000:
-        last_play_str = 'right now!'
+        last_play_str = 'listening right now!'
     print(last_play_str)
 
     last_track = last_play.track
