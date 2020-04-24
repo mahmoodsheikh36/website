@@ -11,6 +11,10 @@ cmdify_db_provider = DBProvider()
 
 bp = Blueprint('music', __name__, url_prefix='/music')
 
+@bp.route('/zspecial', methods=('GET',))
+def music_special():
+    return music_index()
+
 @bp.route('/', methods=('GET',))
 def music_index():
     albums, tracks, artists, plays = cmdify_db_provider.get_music()
